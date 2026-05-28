@@ -312,7 +312,7 @@ class manage_logs {
         $data->resourceid = $resourceid;
         $data->version = $version;
         $data->action = $action;
-        $data->link = str_replace(['<', '>'], '', filter_var($link, FILTER_SANITIZE_URL));
+        $data->link = str_replace(['<', '>'], '', clean_param($link, PARAM_URL));
         $data->file = $file;
         $data->message = mb_detect_encoding($message) === 'ASCII' ? $message : iconv(mb_detect_encoding($message), 'ASCII', $message);
         $data->other = $other;

@@ -10,7 +10,7 @@ require_once($CFG->dirroot . '/repository/lib.php');
  */
 function remove_accents(string $str): string {
     if (!mb_detect_encoding($str, 'UTF-8', true)) {
-        $str = utf8_encode($str);
+        $str = mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1');
     }
     return str_replace(
         ['á', 'à', 'ä', 'â', 'ª', 'Á', 'À', 'Â', 'Ä', 'é', 'è', 'ë', 'ê', 'É', 'È', 'Ê', 'Ë', 'í', 'ì', 'ï', 'î', 'Í', 'Ì', 'Ï', 'Î', 'ó', 'ò', 'ö', 'ô', 'Ó', 'Ò', 'Ö', 'Ô', 'ú', 'ù', 'ü', 'û', 'Ú', 'Ù', 'Û', 'Ü', 'ñ', 'Ñ', 'ç', 'Ç'],
@@ -99,6 +99,17 @@ function clean_string(string $string): string {
 function clean_url(string $url): string {
     $url = str_replace(' ', '%20', $url);
     return preg_replace('/[^A-Za-z\d\-]/', '', $url);
+}
+
+/**
+ * Convierte un string UTF-8 a entidades HTML numéricas para compatibilidad con DOMDocument.
+ * Reemplazo seguro para mb_convert_encoding($str, 'HTML-ENTITIES', 'UTF-8') eliminado en PHP 8.3.
+ *
+ * @param string $text
+ * @return string
+ */
+function encode_html_entities(string $text): string {
+    return mb_encode_numericentity($text, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
 }
 
 /**

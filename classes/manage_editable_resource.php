@@ -259,7 +259,7 @@ class manage_editable_resource {
                     foreach ($links as $link) {
                         $href = $link->getAttribute('href');
                         $value = $link->nodeValue;
-                        $newlink = $navdoc->createElement('a', utf8_decode($value));
+                        $newlink = $navdoc->createElement('a', mb_convert_encoding($value, 'ISO-8859-1', 'UTF-8'));
                         $newhref = new moodle_url('/local/educaaragon/editresource.php', ['resourceid' => $this->cm->instance, 'version' => $this->versionloaded['title'], 'file' => $href]);
                         $newlink->setAttribute(
                             'href',
@@ -356,20 +356,20 @@ class manage_editable_resource {
                 $filepath = $this->repository->get_file($file['path'])['path'];
                 $indexdoc = new DOMDocument();
                 libxml_use_internal_errors(true);
-                $indexdoc->loadHTMLFile(mb_convert_encoding($filepath, 'HTML-ENTITIES', 'UTF-8'));
+                $indexdoc->loadHTMLFile($filepath);
                 libxml_clear_errors();
                 $nav = $indexdoc->getElementById('siteNav');
                 if ($nav !== null) {
                     $navdoc = new DOMDocument();
                     libxml_use_internal_errors(true);
-                    $navdoc->loadHTML(mb_convert_encoding($nav->ownerDocument->saveXML($nav), 'HTML-ENTITIES', 'UTF-8'));
+                    $navdoc->loadHTML(encode_html_entities($nav->ownerDocument->saveXML($nav)));
                     libxml_clear_errors();
                     $links = $navdoc->getElementsByTagName('ul');
                     $tempdom = new DOMDocument();
                     $tempimported = $tempdom->importNode($links->item(0), true);
                     $tempdom->appendChild($tempimported);
                     $newHtml = $tempdom->saveHTML();
-                    return utf8_decode($newHtml);
+                    return mb_convert_encoding($newHtml, 'ISO-8859-1', 'UTF-8');
                 }
             }
         }
@@ -402,7 +402,7 @@ class manage_editable_resource {
                 $this->manageMetaTags(false, $doc);
                 $main = $doc->getElementById('main');
                 if ($main !== null) {
-                    $htmltoutf8 = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+                    $htmltoutf8 = encode_html_entities($html);
                     $loadhtml = new DOMDocument();
                     $loadhtml->loadHTML($htmltoutf8, LIBXML_HTML_NODEFDTD | LIBXML_SCHEMA_CREATE | LIBXML_NOXMLDECL);
 
@@ -465,9 +465,9 @@ class manage_editable_resource {
             $this->versionloaded = $this->get_versionloaded($version);
         }
         try {
-            $htmltoutf8 = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+            $htmltoutf8 = encode_html_entities($html);
             $html = $this->processNewNodes($htmltoutf8, $this->version);
-            $htmltoutf8 = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+            $htmltoutf8 = encode_html_entities($html);
             $files = $this->repository->get_listing($this->versionloaded['path'])['list'];
             foreach ($files as $file) {
                 $loadhtml = new DOMDocument();
@@ -476,7 +476,7 @@ class manage_editable_resource {
                 $currentFileName = basename($filepath);
                 $doc = new DOMDocument();
                 libxml_use_internal_errors(true);
-                $doc->loadHTMLFile(mb_convert_encoding($filepath, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED | LIBXML_NOXMLDECL);
+                $doc->loadHTMLFile($filepath, LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED | LIBXML_NOXMLDECL);
                 $doc->encoding = 'UTF-8';
                 libxml_clear_errors();
 

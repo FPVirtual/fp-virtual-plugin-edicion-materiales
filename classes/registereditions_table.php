@@ -113,7 +113,7 @@ class registereditions_table extends table_sql {
                 case 'edit_comments':
                     $html .= html_writer::tag(
                         'div',
-                        '<b>' . get_string($key, 'local_educaaragon') . '</b><br>' . utf8_encode(base64_decode($data)),
+                        '<b>' . get_string($key, 'local_educaaragon') . '</b><br>' . mb_convert_encoding(base64_decode($data), 'UTF-8', 'ISO-8859-1'),
                         ['class' => 'alert alert-primary', 'role' => 'alert']
                     );
                     break;
