@@ -62,6 +62,46 @@ Debido a la posible duración de la tarea y a que crea nuevos contenidos en el c
 
 Independientemente del periodo de ejecución que se programe para esta tarea, **se recomienda configurar el cron para que se ejecute cada 30 segundos o cada minuto**, ya que este plugin utiliza eventos del core para realizar ciertos procesos, y sólo se dispararán durante la ejecución del cron.
 
+
+### Ejecución manual de la tarea
+
+Además de la ejecución programada, la tarea puede lanzarse de forma manual cuando sea necesario. Existen dos métodos:
+
+**Desde la interfaz web:**
+
+En **Administración del sitio → Servidor → Tareas → Tareas Programadas**, buscar **"Transformar contenidos dinámicos"** y hacer clic en el botón **"Ejecutar ahora"**.
+
+**Desde la línea de comandos (CLI):**
+
+Desde la raíz de la instalación de Moodle, ejecutar:
+
+```bash
+php admin/cli/scheduled_task.php --execute="\local_educaaragon\task\transform_dynamic_content"
+```
+
+También es posible verificar que Moodle reconoce la tarea listándola con:
+
+```bash
+php admin/cli/scheduled_task.php --list | grep educaaragon
+```
+
+**En entornos contenerizados (Docker/Podman):**
+
+Si Moodle se ejecuta dentro de un contenedor, accede al contenedor y lanza la tarea desde su interior:
+
+```bash
+# Ejemplo con Docker
+docker exec -it <nombre_contenedor_moodle> php /var/www/html/admin/cli/scheduled_task.php --execute="\local_educaaragon\task\transform_dynamic_content"
+```
+
+```bash
+# Ejemplo con docker-compose
+docker-compose exec <servicio_moodle> php /var/www/html/admin/cli/scheduled_task.php --execute="\local_educaaragon\task\transform_dynamic_content"
+```
+
+> Asegúrate de reemplazar `<nombre_contenedor_moodle>` o `<servicio_moodle>` por el nombre real de tu contenedor/servicio, y de que la ruta `/var/www/html` corresponda al directorio donde esté instalado Moodle dentro del contenedor.
+
+
 Desinstalación
 ==============
 
