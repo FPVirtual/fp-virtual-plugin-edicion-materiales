@@ -25,7 +25,7 @@
 
 define('CLI_SCRIPT', true);
 
-require(__DIR__ . '/../../../../config.php');
+require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/local/educaaragon/lib.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/manage_editable_resource.php');
@@ -104,6 +104,22 @@ $processedcourses  = 0;
 $processedresources = 0;
 $skippedresources  = 0;
 $errors            = 0;
+
+// ============================================================================
+// IDENTIFICACIÓN DE VERSIÓN
+// ============================================================================
+$pluginversion = get_config('local_educaaragon', 'version');
+$scriptpath    = __FILE__;
+$scriptmtime   = file_exists($scriptpath) ? date('Y-m-d H:i:s', filemtime($scriptpath)) : 'desconocida';
+
+cli_writeln('');
+cli_writeln('═══════════════════════════════════════════════');
+cli_writeln(' RESTAURAR VERSIONES ORIGINALES');
+cli_writeln(' Plugin: local_educaaragon  |  Versión: ' . ($pluginversion ?: 'desconocida'));
+cli_writeln(' Script: ' . basename($scriptpath) . '  |  Fecha: ' . $scriptmtime);
+cli_writeln(' Modo: ' . ($dryrun ? 'DRY-RUN (simulación)' : 'REAL'));
+cli_writeln('═══════════════════════════════════════════════');
+cli_writeln('');
 
 // ============================================================================
 // PROCESAMIENTO
