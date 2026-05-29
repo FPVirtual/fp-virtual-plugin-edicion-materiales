@@ -52,7 +52,7 @@ Al activarla, se nos mostrarán distintas opciones:
 
 ### Tarea Programada
 
-Para configurar la tarea programada del plugin hay que ir a **Administración del sitio → Servidor → Tareas → Tareas Programadas** y en el listado buscar ““
+Para configurar la tarea programada del plugin hay que ir a **Administración del sitio → Servidor → Tareas → Tareas Programadas** y en el listado buscar **"Transformar contenidos dinámicos"** (clase `local_educaaragon\task\transform_dynamic_content`)
 
 Desde este panel podrá **configurar la tarea de la misma forma que cualquier otra tarea de moodle, o leer los registros que se han generado durante su ejecución.**
 
