@@ -179,39 +179,28 @@ foreach ($coursedirs as $coursedir) {
     }
     sort($folderids, SORT_NUMERIC);
 
-    // Separar en actuales y antiguos.
-    $actualfolders = [];
-    $oldfolders    = [];
-    foreach ($folderids as $fid) {
-        if (in_array($fid, $currentids, true)) {
-            $actualfolders[] = $fid;
-        } else {
-            $oldfolders[] = $fid;
-        }
-    }
-
-    if (empty($oldfolders)) {
+    if (empty($folderids)) {
         if ($verbose) {
-            cli_writeln('   ℹ️  No hay carpetas antiguas para migrar');
+            cli_writeln('   ℹ️  No hay carpetas en editions para migrar');
         }
         continue;
     }
 
     if ($verbose) {
-        cli_writeln('   Actuales en Moodle: ' . implode(', ', $actualfolders));
-        cli_writeln('   Antiguos en editions: ' . implode(', ', $oldfolders));
+        cli_writeln('   Actuales en Moodle: ' . implode(', ', $currentids));
+        cli_writeln('   Carpetas en editions: ' . implode(', ', $folderids));
     }
 
     // Emparejar por orden: antiguo[i] -> actual[i].
-    $paircount = min(count($oldfolders), count($actualfolders));
+    $paircount = min(count($folderids), count($currentids));
     if ($paircount === 0) {
-        cli_writeln('   ⚠️  No hay suficientes recursos actuales para emparejar');
+        cli_writeln('   ⚠️  No hay suficientes recursos para emparejar');
         continue;
     }
 
     for ($i = 0; $i < $paircount; $i++) {
-        $oldid = $oldfolders[$i];
-        $newid = $actualfolders[$i];
+        $oldid = $folderids[$i];
+        $newid = $currentids[$i];
 
         $oldpath = $coursepath . $oldid . '/';
         $newpath = $coursepath . $newid . '/';
