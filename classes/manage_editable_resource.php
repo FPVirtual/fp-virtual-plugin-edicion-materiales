@@ -555,9 +555,11 @@ class manage_editable_resource {
             }
         }
         $indexhtml = $fs->get_file($context, 'mod_resource', 'content', 0, '/', 'index.html');
-        $filepath = file_correct_filepath('/');
-        file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
-        file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
+        if ($indexhtml !== false) {
+            $filepath = file_correct_filepath('/');
+            file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
+            file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
+        }
 
         $manage_logs = new manage_logs();
         $manage_logs->create_edited($this->course->id, $this->cm->instance, 'version_applied', null, $this->versionloaded['title']);
@@ -646,9 +648,11 @@ class manage_editable_resource {
             $fs->create_file_from_pathname($fileinfo, $folderprintable . '/' . $file);
         }
         $indexhtml = $fs->get_file($context, 'mod_resource', 'content', 0, '/', 'index.html');
-        $filepath = file_correct_filepath('/');
-        file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
-        file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
+        if ($indexhtml !== false) {
+            $filepath = file_correct_filepath('/');
+            file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
+            file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
+        }
         $this->delete_folder($folderprintable . '/');
 
         $manage_logs = new manage_logs();

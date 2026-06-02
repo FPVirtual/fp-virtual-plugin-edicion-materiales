@@ -191,16 +191,42 @@ foreach ($coursedirs as $coursedir) {
         cli_writeln('   Carpetas en editions: ' . implode(', ', $folderids));
     }
 
-    // Emparejar por orden: antiguo[i] -> actual[i].
-    $paircount = min(count($folderids), count($currentids));
+    // Separar carpetas que ya son IDs actuales (propios) vs antiguos.
+    $oldfolders = [];
+    $actualfolders = [];
+    foreach ($folderids as $fid) {
+        if (in_array($fid, $currentids, true)) {
+            $actualfolders[] = $fid;
+        } else {
+            $oldfolders[] = $fid;
+        }
+    }
+
+    // Targets: actuales que NO tienen su propia carpeta en editions.
+    $targetids = [];
+    foreach ($currentids as $cid) {
+        if (!in_array($cid, $folderids, true)) {
+            $targetids[] = $cid;
+        }
+    }
+
+    if ($verbose) {
+        cli_writeln('   Carpetas propias: ' . implode(', ', $actualfolders));
+        cli_writeln('   Antiguos en editions: ' . implode(', ', $oldfolders));
+        cli_writeln('   Targets sin carpeta: ' . implode(', ', $targetids));
+    }
+
+    $paircount = min(count($oldfolders), count($targetids));
     if ($paircount === 0) {
-        cli_writeln('   ⚠️  No hay suficientes recursos para emparejar');
+        if ($verbose) {
+            cli_writeln('   ℹ️  No hay antiguos para migrar o todos los actuales ya tienen carpeta');
+        }
         continue;
     }
 
     for ($i = 0; $i < $paircount; $i++) {
-        $oldid = $folderids[$i];
-        $newid = $currentids[$i];
+        $oldid = $oldfolders[$i];
+        $newid = $targetids[$i];
 
         $oldpath = $coursepath . $oldid . '/';
         $newpath = $coursepath . $newid . '/';

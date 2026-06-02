@@ -48,7 +48,8 @@ function get_repository(): repository_filesystem {
  */
 function copy_folder($src, $dst): void {
     $dir = opendir($src);
-    if (!mkdir($dst) && !is_dir($dst)) {
+    $dst = rtrim($dst, '/');
+    if (!mkdir($dst, 0777, true) && !is_dir($dst)) {
         throw new RuntimeException(sprintf('Directory "%s" was not created', $dst));
     }
     foreach (scandir($src) as $file) {

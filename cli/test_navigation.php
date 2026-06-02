@@ -2,6 +2,7 @@
 define('CLI_SCRIPT', true);
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/navigationlib.php');
+require_once($CFG->dirroot . '/local/educaaragon/lib.php');
 
 echo "=== Simulacion de navegacion del curso ===" . PHP_EOL . PHP_EOL;
 
