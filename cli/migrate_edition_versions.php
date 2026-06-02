@@ -202,13 +202,9 @@ foreach ($coursedirs as $coursedir) {
         }
     }
 
-    // Targets: actuales que NO tienen su propia carpeta en editions.
-    $targetids = [];
-    foreach ($currentids as $cid) {
-        if (!in_array($cid, $folderids, true)) {
-            $targetids[] = $cid;
-        }
-    }
+    // Targets: todos los actuales, en orden.
+    // Se empareja oldfolders[i] -> currentids[i] por posición.
+    $targetids = $currentids;
 
     if ($verbose) {
         cli_writeln('   Carpetas propias: ' . implode(', ', $actualfolders));

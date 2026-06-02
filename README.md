@@ -96,7 +96,7 @@ docker exec -it <nombre_contenedor_moodle> php /var/www/html/admin/cli/scheduled
 
 ```bash
 # Ejemplo con docker-compose
-docker-compose exec <servicio_moodle> php /var/www/html/admin/cli/scheduled_task.php --execute="\local_educaaragon\task\transform_dynamic_content"
+docker compose exec <servicio_moodle> php /var/www/html/admin/cli/scheduled_task.php --execute="\local_educaaragon\task\transform_dynamic_content"
 ```
 
 > Asegúrate de reemplazar `<nombre_contenedor_moodle>` o `<servicio_moodle>` por el nombre real de tu contenedor/servicio, y de que la ruta `/var/www/html` corresponda al directorio donde esté instalado Moodle dentro del contenedor.
