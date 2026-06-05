@@ -122,7 +122,7 @@ class editables_table extends table_sql {
         global $DB;
 
         // Obtenemos el ID del módulo de curso (course module) asociado a este recurso editable.
-        $cmid = $DB->get_record('course_modules', ['instance' => $row->resourceid], 'id');
+        $cmid = $DB->get_record('course_modules', ['instance' => $row->resourceid, 'course' => $row->courseid], 'id');
 
         // Icono para previsualizar el recurso editable (ojo). Si existe cmid, se genera el enlace;
         // en caso contrario se deja vacío porque no se puede acceder al recurso.
