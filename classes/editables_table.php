@@ -157,7 +157,7 @@ class editables_table extends table_sql {
         $contentprintableresource = '';
         $printableinstance = $DB->get_record('local_educa_editables', ['type' => 'printable', 'relatedcmid' => $cmid->id], 'resourceid');
         if ($printableinstance !== false) {
-            $printablecmid = $DB->get_record('course_modules', ['instance' => $printableinstance->resourceid], 'id');
+            $printablecmid = $DB->get_record('course_modules', ['instance' => $printableinstance->resourceid, 'course' => $row->courseid], 'id');
             if ($printablecmid !== false) {
                 $printableresource = html_writer::tag('i', '', [
                     'class' => 'icon fa fa-print', 'title' => get_string('viewprintresource', 'local_educaaragon')
