@@ -120,7 +120,12 @@ class editables_table extends table_sql {
      */
     public function col_actions(stdClass $row): string {
         global $DB;
-        $cmid = $DB->get_record('course_modules', ['instance' => $row->resourceid], 'id');
+        $resourcemoduleid = $DB->get_field('modules', 'id', ['name' => 'resource']);
+        $cmid = $DB->get_record('course_modules', [
+            'instance' => $row->resourceid,
+            'course'   => $row->courseid,
+            'module'   => $resourcemoduleid,
+        ], 'id');
         $reviewresource = html_writer::tag('i', '', [
             'class' => 'icon fa fa-eye', 'title' => get_string('revieweditableresource', 'local_educaaragon')
         ]);
@@ -137,7 +142,11 @@ class editables_table extends table_sql {
         $contentprintableresource = '';
         $printableinstance = $DB->get_record('local_educa_editables', ['type' => 'printable', 'relatedcmid' => $cmid->id], 'resourceid');
         if ($printableinstance !== false) {
-            $printablecmid = $DB->get_record('course_modules', ['instance' => $printableinstance->resourceid], 'id');
+            $printablecmid = $DB->get_record('course_modules', [
+                'instance' => $printableinstance->resourceid,
+                'course'   => $row->courseid,
+                'module'   => $resourcemoduleid,
+            ], 'id');
             if ($printablecmid !== false) {
                 $printableresource = html_writer::tag('i', '', [
                     'class' => 'icon fa fa-print', 'title' => get_string('viewprintresource', 'local_educaaragon')
@@ -171,8 +180,18 @@ class editables_table extends table_sql {
         if (!$this->rawdata) {
             return;
         }
+        $resourcemoduleid = $DB->get_field('modules', 'id', ['name' => 'resource']);
         foreach ($this->rawdata as $key => $row) {
             if ($DB->get_record('course', ['id' => $row->courseid]) === false) {
+                unset($this->rawdata[$key]);
+                continue;
+            }
+            $cm = $DB->get_record('course_modules', [
+                'instance' => $row->resourceid,
+                'course'   => $row->courseid,
+                'module'   => $resourcemoduleid,
+            ]);
+            if ($cm === false) {
                 unset($this->rawdata[$key]);
                 continue;
             }
