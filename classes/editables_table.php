@@ -120,25 +120,45 @@ class editables_table extends table_sql {
      */
     public function col_actions(stdClass $row): string {
         global $DB;
+
+        // Obtenemos el ID del módulo de curso (course module) asociado a este recurso editable.
         $resourcemoduleid = $DB->get_field('modules', 'id', ['name' => 'resource']);
         $cmid = $DB->get_record('course_modules', [
             'instance' => $row->resourceid,
             'course'   => $row->courseid,
             'module'   => $resourcemoduleid,
         ], 'id');
+
+        // Icono para previsualizar el recurso editable (ojo). Si existe cmid, se genera el enlace;
+        // en caso contrario se deja vacío porque no se puede acceder al recurso.
         $reviewresource = html_writer::tag('i', '', [
             'class' => 'icon fa fa-eye', 'title' => get_string('revieweditableresource', 'local_educaaragon')
         ]);
-        $cmid !== false ? $contentreviewresource = html_writer::link(new moodle_url('/mod/resource/view.php', ['id' => $cmid->id, 'version' => $row->version]), $reviewresource, ['target' => '_blank']) : $contentreviewresource = '';
+        $cmid !== false
+            ? $contentreviewresource = html_writer::link(
+                new moodle_url('/mod/resource/view.php', ['id' => $cmid->id, 'version' => $row->version]),
+                $reviewresource,
+                ['target' => '_blank']
+            )
+            : $contentreviewresource = '';
 
+        // Icono para editar el recurso (lápiz). Solo se muestra si el recurso tiene cmid válido,
+        // redirigiendo a la página de edición del plugin.
         $contenteditresource = '';
         if ($cmid !== false) {
             $editresource = html_writer::tag('i', '', [
                 'class' => 'icon fa fa-edit', 'title' => get_string('editresource', 'local_educaaragon')
             ]);
-            $contenteditresource = html_writer::link(new moodle_url('/local/educaaragon/editresource.php', ['resourceid' => $row->resourceid]), $editresource, ['target' => '_blank']);
+            $contenteditresource = html_writer::link(
+                new moodle_url('/local/educaaragon/editresource.php', ['resourceid' => $row->resourceid]),
+                $editresource,
+                ['target' => '_blank']
+            );
         }
 
+        // Icono para abrir la versión imprimible del recurso (impresora). Se busca en la tabla
+        // local_educa_editables el registro de tipo 'printable' vinculado al cmid actual. Si existe,
+        // se obtiene su cmid correspondiente y se genera el enlace de visualización.
         $contentprintableresource = '';
         $printableinstance = $DB->get_record('local_educa_editables', ['type' => 'printable', 'relatedcmid' => $cmid->id], 'resourceid');
         if ($printableinstance !== false) {
@@ -151,21 +171,39 @@ class editables_table extends table_sql {
                 $printableresource = html_writer::tag('i', '', [
                     'class' => 'icon fa fa-print', 'title' => get_string('viewprintresource', 'local_educaaragon')
                 ]);
-                $contentprintableresource = html_writer::link(new moodle_url('/mod/resource/view.php', ['id' => $printablecmid->id, 'version' => $row->version]), $printableresource, ['target' => '_blank']);
+                $contentprintableresource = html_writer::link(
+                    new moodle_url('/mod/resource/view.php', ['id' => $printablecmid->id, 'version' => $row->version]),
+                    $printableresource,
+                    ['target' => '_blank']
+                );
             }
         }
 
+        // Icono para consultar el registro de ediciones realizadas sobre este recurso (lista).
         $registereditions = html_writer::tag('i', '', [
             'class' => 'icon fa fa-list', 'title' => get_string('registereditions', 'local_educaaragon')
         ]);
-        $registereditions = html_writer::link(new moodle_url('/local/educaaragon/registereditions.php', ['resourceid' => $row->resourceid]), $registereditions, ['target' => '_blank']);
+        $registereditions = html_writer::link(
+            new moodle_url('/local/educaaragon/registereditions.php', ['resourceid' => $row->resourceid]),
+            $registereditions,
+            ['target' => '_blank']
+        );
 
+        // Icono para acceder al informe de enlaces del recurso (cadena).
         $resourcellinks = html_writer::tag('i', '', [
             'class' => 'icon fa fa-link', 'title' => get_string('link_report', 'local_educaaragon')
         ]);
-        $resourcellinks = html_writer::link(new moodle_url('/local/educaaragon/resourcelinks.php', ['resourceid' => $row->resourceid, 'version' => $row->version]), $resourcellinks, ['target' => '_blank']);
+        $resourcellinks = html_writer::link(
+            new moodle_url('/local/educaaragon/resourcelinks.php', ['resourceid' => $row->resourceid, 'version' => $row->version]),
+            $resourcellinks,
+            ['target' => '_blank']
+        );
 
-        return html_writer::div($contentreviewresource . $contenteditresource . $contentprintableresource . $registereditions . $resourcellinks, 'd-inline-flex');
+        // Se unen todos los iconos/enlaces generados dentro de un contenedor flex en línea y se retorna.
+        return html_writer::div(
+            $contentreviewresource . $contenteditresource . $contentprintableresource . $registereditions . $resourcellinks,
+            'd-inline-flex'
+        );
     }
 
     /**

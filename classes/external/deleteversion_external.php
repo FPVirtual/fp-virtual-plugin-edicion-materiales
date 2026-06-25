@@ -23,6 +23,8 @@
 
 namespace local_educaaragon\external;
 
+use coding_exception;
+use context_course;
 use dml_exception;
 use external_api;
 use external_function_parameters;
@@ -76,6 +78,9 @@ class deleteversion_external extends external_api {
                 'versionname' => $versionname
             ]
         );
+        $coursecontext = context_course::instance($courseid);
+        self::validate_context($coursecontext);
+        require_capability('local/educaaragon:editresources', $coursecontext);
         $cmrecord = $DB->get_record('course_modules', ['course' => $courseid, 'instance' => $resourceid], 'id');
         $cminfo = get_fast_modinfo($courseid)->get_cm($cmrecord->id);
         $manageeditable = new manage_editable_resource($cminfo);
