@@ -67,12 +67,14 @@ $string['processlink'] = 'Resource link processing ';
 // Launch task
 $string['launchtask'] = 'Launch transformation task';
 $string['launchtask_desc'] = 'Allows you to manually run the dynamic content transformation task for all configured courses or for a specific course.';
+$string['launchtask_scope'] = 'Execution scope';
 $string['launchtask_all'] = 'Process all courses';
 $string['launchtask_all_desc'] = 'All unprocessed courses will be processed according to the current configuration (all courses or the selected category).';
 $string['launchtask_single'] = 'Process a specific course';
 $string['launchtask_single_desc'] = 'Only the selected course will be processed.';
 $string['launchtask_course'] = 'Course';
 $string['launchtask_selectcourse'] = 'Select a course';
+$string['launchtask_searchcourse'] = 'Search course';
 $string['launchtask_execute'] = 'Run';
 $string['launchtask_result'] = 'Execution result';
 $string['launchtask_course_processed_warning'] = 'This course has already been processed.';

@@ -175,6 +175,17 @@ if ($showform) {
     echo html_writer::end_tag('fieldset');
 
     echo html_writer::start_div('form-group');
+    echo html_writer::tag('label', get_string('launchtask_searchcourse', 'local_educaaragon'), ['for' => 'course_search']);
+    echo html_writer::empty_tag('input', [
+        'type' => 'text',
+        'class' => 'form-control',
+        'id' => 'course_search',
+        'placeholder' => get_string('launchtask_searchcourse', 'local_educaaragon'),
+        'autocomplete' => 'off',
+    ]);
+    echo html_writer::end_div();
+
+    echo html_writer::start_div('form-group');
     echo html_writer::tag('label', get_string('launchtask_course', 'local_educaaragon'), ['for' => 'courseid']);
     echo html_writer::start_tag('select', ['class' => 'form-control', 'name' => 'courseid', 'id' => 'courseid']);
     echo html_writer::tag('option', get_string('launchtask_selectcourse', 'local_educaaragon'), ['value' => '']);
@@ -184,6 +195,22 @@ if ($showform) {
     }
     echo html_writer::end_tag('select');
     echo html_writer::end_div();
+
+    echo html_writer::script("(function() {
+        var searchInput = document.getElementById('course_search');
+        var courseSelect = document.getElementById('courseid');
+        var options = Array.from(courseSelect.options);
+        searchInput.addEventListener('input', function() {
+            var term = searchInput.value.toLowerCase();
+            options.forEach(function(option) {
+                if (option.value === '') {
+                    option.hidden = false;
+                    return;
+                }
+                option.hidden = term.length > 0 && option.text.toLowerCase().indexOf(term) === -1;
+            });
+        });
+    })();");
 
     echo html_writer::start_div('mt-3');
     echo html_writer::tag('button', get_string('launchtask_execute', 'local_educaaragon'), ['type' => 'submit', 'class' => 'btn btn-primary']);

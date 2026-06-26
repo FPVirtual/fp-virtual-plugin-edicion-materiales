@@ -67,12 +67,14 @@ $string['processlink'] = 'Procesado de enlaces de recurso ';
 // Launch task
 $string['launchtask'] = 'Lanzar tarea de transformación';
 $string['launchtask_desc'] = 'Permite ejecutar manualmente la tarea de transformación de contenidos dinámicos para todos los cursos configurados o para un curso concreto.';
+$string['launchtask_scope'] = 'Ámbito de ejecución';
 $string['launchtask_all'] = 'Procesar todos los cursos';
 $string['launchtask_all_desc'] = 'Se procesarán todos los cursos no procesados según la configuración actual (todos los cursos o la categoría seleccionada).';
 $string['launchtask_single'] = 'Procesar un curso concreto';
 $string['launchtask_single_desc'] = 'Se procesará únicamente el curso seleccionado.';
 $string['launchtask_course'] = 'Curso';
 $string['launchtask_selectcourse'] = 'Seleccione un curso';
+$string['launchtask_searchcourse'] = 'Buscar curso';
 $string['launchtask_execute'] = 'Ejecutar';
 $string['launchtask_result'] = 'Resultado de la ejecución';
 $string['launchtask_course_processed_warning'] = 'Este curso ya ha sido procesado.';
