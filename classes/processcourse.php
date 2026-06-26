@@ -199,7 +199,10 @@ class processcourse {
      * @throws stored_file_creation_exception
      */
     public function create_resources_without_association(array $contentsoffolder) {
+        global $DB;
         $section = course_create_section($this->course);
+        $section->name = get_string('editablematerials', 'local_educaaragon');
+        $DB->update_record('course_sections', $section);
         $manage_logs = new manage_logs();
         $i = 0;
         foreach ($contentsoffolder as $contentoffolder) {

@@ -80,6 +80,7 @@ $string['reprocessingmsg'] = '<p>This action will mark this course for reprocess
 $string['reprocess'] = 'Reprocess';
 $string['editableresources'] = 'Show list of generated editable resources';
 $string['editables'] = 'Editable resources';
+$string['editablematerials'] = 'Editable Materials';
 $string['editables_help'] = 'List of resources available for editing.<br>You can filter the results by course by adding the "courseid" parameter to the url.';
 $string['resourceid'] = 'Resource ID';
 $string['resourcename'] = 'Name of the resource';
