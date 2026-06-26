@@ -64,6 +64,23 @@ $string['resource_deleted'] = 'Se ha eliminado uno o varios recursos editable de
 $string['processresource'] = 'Contenido creado en curso ';
 $string['processlink'] = 'Procesado de enlaces de recurso ';
 
+// Launch task
+$string['launchtask'] = 'Lanzar tarea de transformación';
+$string['launchtask_desc'] = 'Permite ejecutar manualmente la tarea de transformación de contenidos dinámicos para todos los cursos configurados o para un curso concreto.';
+$string['launchtask_all'] = 'Procesar todos los cursos';
+$string['launchtask_all_desc'] = 'Se procesarán todos los cursos no procesados según la configuración actual (todos los cursos o la categoría seleccionada).';
+$string['launchtask_single'] = 'Procesar un curso concreto';
+$string['launchtask_single_desc'] = 'Se procesará únicamente el curso seleccionado.';
+$string['launchtask_course'] = 'Curso';
+$string['launchtask_selectcourse'] = 'Seleccione un curso';
+$string['launchtask_execute'] = 'Ejecutar';
+$string['launchtask_result'] = 'Resultado de la ejecución';
+$string['launchtask_course_processed_warning'] = 'Este curso ya ha sido procesado.';
+$string['launchtask_reprocess'] = 'Reprocesar curso';
+$string['launchtask_reprocess_confirm'] = 'El curso seleccionado ya ha sido procesado. Para volver a procesarlo se eliminarán los recursos generados anteriormente. ¿Desea continuar?';
+$string['launchtask_course_notfound'] = 'No se ha encontrado el curso seleccionado.';
+$string['launchtask_execution_finished'] = 'Ejecución finalizada.';
+
 // Tables
 $string['processedcourses'] = 'Cursos procesados';
 $string['processedcourses_help'] = 'Listado de los cursos procesados por la tarea <b>local_educaaragon\task\transform_dynamic_content</b>.<br>Desde este panel podrá gestionar los cursos que necesite que se vuelvan a procesar en la siguiente ejecución de la tarea.';

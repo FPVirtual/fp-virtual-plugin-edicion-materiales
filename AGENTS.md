@@ -39,6 +39,7 @@ local/educaaragon/
 ├── editresource.php         # Editor de contenido HTML de una versión
 ├── editresourcetoc.php      # Editor de la tabla de contenidos (TOC)
 ├── processedcourses.php     # Panel de cursos procesados
+├── launchtask.php           # Lanzador manual de la tarea de transformación
 ├── registereditions.php     # Registro de ediciones realizadas
 ├── resourcelinks.php        # Informe de enlaces de una versión
 ├── db/
@@ -171,10 +172,11 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
 - **Configuración obligatoria tras la instalación:**
   1. Crear un repositorio de tipo *Sistema de archivos* en Moodle.
   2. En `Administración del sitio → Cursos → Educa Aragón → Ajustes generales`:
-     - Activar la tarea programada.
      - Seleccionar el repositorio de contenidos.
      - Elegir si aplica a todos los cursos o a una categoría específica.
+     - Activar la tarea programada cuando se desee que el cron procese los cursos automáticamente.
   3. Configurar la tarea programada en `Administración del sitio → Servidor → Tareas → Tareas Programadas`.
+  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Lanzar tarea de transformación` para todos los cursos configurados o para un curso concreto.
 
 ---
 

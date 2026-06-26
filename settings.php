@@ -56,12 +56,10 @@ if ($hassiteconfig) {
             $repositories[$instance->id] = $instance->get_name();
         }
         $setting = (new admin_setting_configselect('local_educaaragon/repository', get_string('repository', 'local_educaaragon'), get_string('repository_desc', 'local_educaaragon'), 0, $repositories));
-        $page->hide_if('local_educaaragon/repository', 'local_educaaragon/activetask');
         $page->add($setting);
     }
 
     $setting = new admin_setting_configcheckbox('local_educaaragon/allcourses', get_string('allcourses', 'local_educaaragon'), get_string('allcourses_desc', 'local_educaaragon'), 0);
-    $page->hide_if('local_educaaragon/allcourses', 'local_educaaragon/activetask');
     $page->add($setting);
 
     $cats = core_course_category::get_all();
@@ -72,7 +70,6 @@ if ($hassiteconfig) {
     }
 
     $setting = (new admin_setting_configselect('local_educaaragon/category', get_string('category', 'local_educaaragon'), get_string('category_desc', 'local_educaaragon'), 1, $choices));
-    $page->hide_if('local_educaaragon/category', 'local_educaaragon/activetask');
     $page->hide_if('local_educaaragon/category', 'local_educaaragon/allcourses', 'checked');
     $page->add($setting);
 
@@ -81,6 +78,9 @@ if ($hassiteconfig) {
     $ADMIN->add('local_educaaragon', $page);
 }
 
+$ADMIN->add('local_educaaragon', new admin_externalpage('launchtask',
+    get_string('launchtask', 'local_educaaragon'),
+    "$CFG->wwwroot/local/educaaragon/launchtask.php", 'local/educaaragon:manageall', false, $context));
 $ADMIN->add('local_educaaragon', new admin_externalpage('processedcourses',
     get_string('processedcourses', 'local_educaaragon'),
     "$CFG->wwwroot/local/educaaragon/processedcourses.php", 'local/educaaragon:manageall', false, $context));

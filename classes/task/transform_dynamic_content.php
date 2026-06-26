@@ -56,6 +56,15 @@ require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_e
 
 class transform_dynamic_content extends scheduled_task {
 
+    /** @var repository_filesystem|null */
+    private $repository = null;
+
+    /** @var component_generator_base|null */
+    private $resourcegenerator = null;
+
+    /** @var int|null */
+    private $usercontext = null;
+
     /**
      * Return the task's name as shown in admin screens.
      *
@@ -68,66 +77,127 @@ class transform_dynamic_content extends scheduled_task {
 
 
     /**
+     * Scheduled task entry point. Honors the "activetask" setting.
+     *
      * @return bool
      * @throws dml_exception
      * @throws moodle_exception
      * @throws coding_exception
      */
     public function execute(): bool {
-        if (get_config('local_educaaragon', 'activetask')) {
-            $starexecute = microtime(true);
-            $this->print_signature();
-            $courses = $this->get_courses_to_process();
-            mtrace(get_string('coursesfound', 'local_educaaragon', count($courses)));
-            $repository = get_repository();
-            $generator = phpunit_util::get_data_generator();
-            $usercontext = context_user::instance(get_admin()->id)->id;
-            if ($generator !== null) {
-                $resourcegenerator = $generator->get_plugin_generator('mod_resource');
-            } else {
-                throw new RuntimeException(
-                    get_string(
-                        'no_resourcegenerator',
-                        'local_educaaragon'
-                    )
-                );
-            }
-            foreach ($courses as $course) {
-                mtrace(PHP_EOL . get_string('processcourse', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
-                try {
-                    $start = microtime(true);
-                    $this->procces_course($course, $repository, $resourcegenerator, $usercontext);
-                    mtrace(get_string('processresourcelinks', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
-                    $this->procces_resource_links($course);
-                    mtrace( get_string('course_processed', 'local_educaaragon') . round(microtime(true) - $start, 2) . 's' . PHP_EOL
-                        . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage())
-                    );
-                } catch (Exception $e) {
-                    $manage_logs = new manage_logs();
-                    $manage_logs->create_processed_course($course->id);
-                    if ($e->getMessage() === 'error/invalidpersistenterror') {
-                        reprocessing_external::reprocessing_course($course->id);
-                        $manage_logs->update_proccesed_course(false, 'error/invalidpersistenterror');
-                    }
-                    if ($e->getMessage() === 'error/Invalid file requested.') {
-                        reprocessing_external::reprocessing_course($course->id);
-                        $manage_logs->update_proccesed_course(false, 'error/invalidfilerequested');
-                    }
-                    mtrace(get_string(
-                        'errorprocesscourse_desc',
-                        'local_educaaragon',
-                        ['course' => $course->shortname, 'error' => $e->getMessage()]
-                    ));
-                }
-            }
-            mtrace( PHP_EOL
-                . get_string('allcourses_processed', 'local_educaaragon') . round(microtime(true) - $starexecute, 2) . 's' . PHP_EOL
-                . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage()) . PHP_EOL
+        return $this->run(false);
+    }
+
+    /**
+     * Runs the transformation task.
+     *
+     * @param bool $forced When true, the task runs regardless of the "activetask" setting.
+     * @return bool
+     * @throws dml_exception
+     * @throws moodle_exception
+     * @throws coding_exception
+     */
+    public function run(bool $forced = false): bool {
+        if (!$forced && !get_config('local_educaaragon', 'activetask')) {
+            mtrace(get_string('notactivetask', 'local_educaaragon'));
+            return false;
+        }
+        $starexecute = microtime(true);
+        $this->print_signature();
+        $courses = $this->get_courses_to_process();
+        mtrace(get_string('coursesfound', 'local_educaaragon', count($courses)));
+        $this->init_processing();
+        foreach ($courses as $course) {
+            $this->process_course_internal($course);
+        }
+        mtrace( PHP_EOL
+            . get_string('allcourses_processed', 'local_educaaragon') . round(microtime(true) - $starexecute, 2) . 's' . PHP_EOL
+            . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage()) . PHP_EOL
+        );
+        return true;
+    }
+
+    /**
+     * Processes a single course on demand.
+     *
+     * @param stdClass $course
+     * @param bool $forced When true, the task runs regardless of the "activetask" setting.
+     * @return bool
+     * @throws dml_exception
+     * @throws moodle_exception
+     * @throws coding_exception
+     */
+    public function process_single_course(stdClass $course, bool $forced = true): bool {
+        if (!$forced && !get_config('local_educaaragon', 'activetask')) {
+            mtrace(get_string('notactivetask', 'local_educaaragon'));
+            return false;
+        }
+        $this->init_processing();
+        return $this->process_course_internal($course);
+    }
+
+    /**
+     * Initializes the repository and resource generator needed for processing.
+     *
+     * @return void
+     * @throws dml_exception
+     * @throws moodle_exception
+     */
+    private function init_processing(): void {
+        if ($this->repository !== null) {
+            return;
+        }
+        $this->repository = get_repository();
+        $generator = phpunit_util::get_data_generator();
+        if ($generator === null) {
+            throw new RuntimeException(
+                get_string(
+                    'no_resourcegenerator',
+                    'local_educaaragon'
+                )
+            );
+        }
+        $this->resourcegenerator = $generator->get_plugin_generator('mod_resource');
+        $this->usercontext = context_user::instance(get_admin()->id)->id;
+    }
+
+    /**
+     * Processes one course and its resource links.
+     *
+     * @param stdClass $course
+     * @return bool
+     * @throws coding_exception
+     * @throws moodle_exception
+     */
+    private function process_course_internal(stdClass $course): bool {
+        mtrace(PHP_EOL . get_string('processcourse', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
+        try {
+            $start = microtime(true);
+            $this->procces_course($course, $this->repository, $this->resourcegenerator, $this->usercontext);
+            mtrace(get_string('processresourcelinks', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
+            $this->procces_resource_links($course);
+            mtrace( get_string('course_processed', 'local_educaaragon') . round(microtime(true) - $start, 2) . 's' . PHP_EOL
+                . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage())
             );
             return true;
+        } catch (Exception $e) {
+            $manage_logs = new manage_logs();
+            $manage_logs->create_processed_course($course->id);
+            if ($e->getMessage() === 'error/invalidpersistenterror') {
+                reprocessing_external::reprocessing_course($course->id);
+                $manage_logs->update_proccesed_course(false, 'error/invalidpersistenterror');
+            }
+            if ($e->getMessage() === 'error/Invalid file requested.') {
+                reprocessing_external::reprocessing_course($course->id);
+                $manage_logs->update_proccesed_course(false, 'error/invalidfilerequested');
+            }
+            mtrace(get_string(
+                'errorprocesscourse_desc',
+                'local_educaaragon',
+                ['course' => $course->shortname, 'error' => $e->getMessage()]
+            ));
+            return false;
         }
-        mtrace(get_string('notactivetask', 'local_educaaragon'));
-        return false;
     }
 
     /**
@@ -135,7 +205,7 @@ class transform_dynamic_content extends scheduled_task {
      * @throws dml_exception
      * @throws moodle_exception
      */
-    private function get_courses_to_process(): array {
+    public function get_courses_to_process(): array {
         global $DB;
         if (get_config('local_educaaragon', 'allcourses')) {
             $courses = get_courses();
