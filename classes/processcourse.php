@@ -50,6 +50,9 @@ require_once($CFG->dirroot . '/mod/resource/lib.php');
 
 class processcourse {
 
+    public const SOURCE_FOLDER = 'materiales';
+    public const EDITIONS_FOLDER = 'editions';
+
     private $course;
     private $repository;
     private $info;
@@ -101,17 +104,50 @@ class processcourse {
     }
 
     /**
+     * Looks for the source folder of the course under the configured source folder.
+     *
      * @return array
+     * @throws repository_exception
      */
     public function get_related_folder(): array {
-         $listing = $this->repository->get_listing('/');
-         foreach ($listing['list'] as $folder) {
-             if ($this->course->shortname === $folder['title']) {
-                 return $folder;
-             }
-         }
-         return [];
-     }
+        $sourcefolder = $this->find_folder('/', self::SOURCE_FOLDER);
+        if (empty($sourcefolder)) {
+            return [];
+        }
+        return $this->find_folder($sourcefolder['path'], $this->course->shortname);
+    }
+
+    /**
+     * Looks for the editions folder of the course.
+     *
+     * @return array
+     * @throws repository_exception
+     */
+    public function get_editions_folder(): array {
+        $editionsfolder = $this->find_folder('/', self::EDITIONS_FOLDER);
+        if (empty($editionsfolder)) {
+            return [];
+        }
+        return $this->find_folder($editionsfolder['path'], $this->course->shortname);
+    }
+
+    /**
+     * Helper to find a folder by title inside a repository path.
+     *
+     * @param string $path
+     * @param string $title
+     * @return array
+     * @throws repository_exception
+     */
+    private function find_folder(string $path, string $title): array {
+        $listing = $this->repository->get_listing($path);
+        foreach ($listing['list'] as $folder) {
+            if ($title === $folder['title']) {
+                return $folder;
+            }
+        }
+        return [];
+    }
 
     /**
      * @param string $path
@@ -180,6 +216,11 @@ class processcourse {
 
             $manage_logs->create_editable($printableinstance->id, $cm->course, 'printable', 'original');
             $manage_logs->update_editable($editablecm->id, 'original');
+
+            $this->info = get_fast_modinfo($this->course);
+            $editablecminfo = $this->info->get_cm($editablecm->id);
+            $this->ensure_original_version($editablecminfo);
+
             $i++;
             mtrace(
                 get_string('processresource', 'local_educaaragon') .
@@ -216,12 +257,78 @@ class processcourse {
 
             $manage_logs->create_editable($printableinstance->id, $cm->course, 'printable', 'original');
             $manage_logs->update_editable($editableinstance->cmid, 'original');
+
+            $this->ensure_original_version($cm);
+
             $i++;
             mtrace(
                 get_string('processresource', 'local_educaaragon') .
                 $i . '/' . count($contentsoffolder) . ' -> ' . round(microtime(true) - $start, 2) . 's'
             );
         }
+    }
+
+    /**
+     * Recognizes an already processed course: ensures original versions exist in
+     * editions/<shortname>/<resourceid>/original for every editable resource.
+     *
+     * @return void
+     * @throws coding_exception
+     * @throws dml_exception
+     * @throws invalid_persistent_exception
+     * @throws moodle_exception
+     * @throws repository_exception
+     */
+    public function recognize_existing_resources(): void {
+        global $DB;
+        $editables = $DB->get_records('local_educa_editables', [
+            'courseid' => $this->course->id,
+            'type' => 'editable',
+        ]);
+        $processed = 0;
+        $total = count($editables);
+        foreach ($editables as $editable) {
+            $start = microtime(true);
+            $cm = $DB->get_record('course_modules', ['instance' => $editable->resourceid, 'course' => $this->course->id, 'module' => $this->get_resource_module_id()], 'id');
+            if (!$cm) {
+                mtrace(get_string('recognize_resource_notfound', 'local_educaaragon', $editable->resourceid));
+                continue;
+            }
+            $this->info = get_fast_modinfo($this->course);
+            $cminfo = $this->info->get_cm($cm->id);
+            $this->ensure_original_version($cminfo);
+            $processed++;
+            mtrace(
+                get_string('processresource', 'local_educaaragon') .
+                $processed . '/' . $total . ' -> ' . round(microtime(true) - $start, 2) . 's'
+            );
+        }
+    }
+
+    /**
+     * Returns the module id for mod_resource.
+     *
+     * @return int
+     * @throws dml_exception
+     */
+    private function get_resource_module_id(): int {
+        global $DB;
+        return (int)$DB->get_field('modules', 'id', ['name' => 'resource'], MUST_EXIST);
+    }
+
+    /**
+     * Ensures that the original version folder exists for the given editable resource.
+     *
+     * @param cm_info $cm
+     * @return void
+     * @throws coding_exception
+     * @throws dml_exception
+     * @throws invalid_persistent_exception
+     * @throws moodle_exception
+     * @throws repository_exception
+     */
+    private function ensure_original_version(cm_info $cm): void {
+        new manage_editable_resource($cm, '');
     }
 
     /**

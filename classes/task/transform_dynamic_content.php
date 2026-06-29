@@ -262,6 +262,15 @@ class transform_dynamic_content extends scheduled_task {
                 )
             );
         }
+
+        $editionsfolder = $processcourse->get_editions_folder();
+        if (!empty($editionsfolder)) {
+            mtrace(get_string('editionsfolder_found', 'local_educaaragon', $course->shortname));
+            $processcourse->recognize_existing_resources();
+            $manage_logs->update_proccesed_course(true, 'correctly_processed');
+            return;
+        }
+
         $contentsoffolder = $processcourse->get_contents_for_course($repositoryfolder['path']);
         /** @var cm_info[] $dynamiccontent */
         $dynamiccontent = $processcourse->get_scorms_and_imscp();
