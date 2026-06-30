@@ -121,6 +121,21 @@ class processcourse {
     }
 
     /**
+     * Checks whether the course already has editable resources tracked in the
+     * plugin tables. Used to decide between initial processing and recognition.
+     *
+     * @return bool
+     * @throws dml_exception
+     */
+    public function has_existing_editable_resources(): bool {
+        global $DB;
+        return $DB->record_exists('local_educa_editables', [
+            'courseid' => $this->course->id,
+            'type' => 'editable',
+        ]);
+    }
+
+    /**
      * Returns the configured source folder name (relative to repository root).
      * An empty value means the course folders are directly at the repository root.
      *

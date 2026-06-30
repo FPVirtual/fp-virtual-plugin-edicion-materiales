@@ -123,7 +123,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 ### 5.1 Transformación inicial (tarea programada)
 1. La tarea `transform_dynamic_content` recorre los cursos de la categoría configurada (o todos).
 2. Por cada curso, busca en el repositorio filesystem la carpeta configurada como fuente (`sourcefolder`). Si el ajuste está vacío, busca directamente `<shortname_curso>/`; si tiene un valor, busca `<valor>/<shortname_curso>/`.
-3. Si además existe `editions/<shortname_curso>/`, el curso ya fue procesado antes: la tarea solo reconoce las versiones existentes y asegura que cada recurso editable tenga su carpeta `original`.
+3. Si existe `editions/<shortname_curso>/` **y** el curso tiene registros en `local_educa_editables`, el curso ya fue procesado antes: la tarea solo reconoce las versiones existentes y asegura que cada recurso editable tenga su carpeta `original`.
 4. Si no existe `editions/<shortname_curso>/`, es el primer procesado. Identifica los módulos SCORM e IMSCP del curso (excepto sección 0) y crea, para cada contenido, dos recursos de tipo `mod_resource`:
    - **Editable:** recurso HTML estándar con todos los archivos de `recursos-editables/<shortname_curso>/<orden>/`.
    - **Imprimible:** recurso HTML donde se unifican todos los archivos `.html` en un único `index.html`, eliminando navegación y añadiendo CSS de impresión.

@@ -268,7 +268,8 @@ class transform_dynamic_content extends scheduled_task {
         }
 
         $editionsfolder = $processcourse->get_editions_folder();
-        if (!empty($editionsfolder)) {
+        $hasexisting = $processcourse->has_existing_editable_resources();
+        if (!empty($editionsfolder) && $hasexisting) {
             mtrace(get_string('editionsfolder_found', 'local_educaaragon', $course->shortname));
             $processcourse->recognize_existing_resources();
             $manage_logs->update_proccesed_course(true, 'correctly_processed');

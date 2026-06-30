@@ -65,7 +65,7 @@ Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
 *   `original/`: copia del contenido del recurso editable tal como se generó en la primera transformación. No debe editarse ni eliminarse.
 *   `v1_2025_2026/`, `v2_.../`, etc.: versiones creadas posteriormente desde el panel de edición.
 
-Si ya existe `editions/<shortname_curso>/`, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes.
+Si ya existe `editions/<shortname_curso>/` y el curso ya tiene recursos editables registrados por el plugin, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes. Si no hay registros de recursos editables, se tratará como un procesado inicial.
     
 
 ## Configuración
