@@ -22,7 +22,7 @@ Para que el plugin funcione, es necesario que se cree un repositorio dentro de M
 
 Los pasos a seguir son los siguientes:
 
-*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir las carpetas `recursos-editables` (contendrá los recursos en formato HTML proporcionados por el cliente) y `editions` (la creará y gestionará el plugin para las versiones editadas).
+*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir los contenidos fuente de los cursos y, opcionalmente desde el inicio, la carpeta `editions` (la creará y gestionará el plugin para las versiones editadas). La ubicación exacta de los contenidos fuente se configura en el ajuste **Carpeta de contenidos fuente**.
     
 *   Dentro de la administración de Moodle, ir a **Administración del sitio→ Extensiones → Repositorios → Gestionar Repositorios → Sistema de archivos**, debe estar marcado como “Activado y visible”
     
@@ -34,15 +34,23 @@ Los pasos a seguir son los siguientes:
 
 Dentro del repositorio que acabamos de crear, los contenidos se organizan en dos carpetas principales:
 
-### Carpeta `recursos-editables/` (contenido fuente)
+### Contenido fuente
 
-Aquí se colocan los contenidos originales que utilizará la tarea de transformación para dar de alta los recursos editables. Deberán seguir los siguientes requisitos:
+Aquí se colocan los contenidos originales que utilizará la tarea de transformación para dar de alta los recursos editables. La ubicación de esta carpeta se indica en el ajuste **Carpeta de contenidos fuente**:
 
-*   Dentro de `recursos-editables/` deberá existir **una carpeta nombrada con el nombre corto (`shortname`) del curso** al que corresponda.
-    
-*   Dentro de la carpeta del curso, debe existir **una carpeta por cada recurso que se vaya a generar**, recomendable que esté nombrada con `01`, `02`, `03`… según el orden de aparición del recurso en el curso, para facilitar la ordenación.
-    
-*   **Dentro de cada carpeta de un recurso deberán estar todos los ficheros necesarios para que el contenido funcione correctamente, así como un fichero `index.html`** que será el que sirva de disparador del contenido. Si este fichero no existe, el recurso no se generará.
+*   Si se deja **vacío**, la tarea buscará las carpetas de los cursos directamente en la raíz del repositorio:
+    ```
+    <raíz_repo>/<shortname_curso>/<orden>/index.html
+    ```
+
+*   Si se escribe un nombre de carpeta (por ejemplo, `recursos-editables`), la tarea buscará dentro de esa subcarpeta:
+    ```
+    <raíz_repo>/recursos-editables/<shortname_curso>/<orden>/index.html
+    ```
+
+En cualquier caso, dentro de la carpeta de cada curso debe existir **una subcarpeta por cada recurso que se vaya a generar**, recomendable que esté nombrada con `01`, `02`, `03`… según el orden de aparición del recurso en el curso, para facilitar la ordenación.
+
+**Dentro de cada carpeta de un recurso deberán estar todos los ficheros necesarios para que el contenido funcione correctamente, así como un fichero `index.html`** que será el que sirva de disparador del contenido. Si este fichero no existe, el recurso no se generará.
 
 ### Carpeta `editions/` (versiones editadas)
 
@@ -57,7 +65,7 @@ Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
 *   `original/`: copia del contenido del recurso editable tal como se generó en la primera transformación. No debe editarse ni eliminarse.
 *   `v1_2025_2026/`, `v2_.../`, etc.: versiones creadas posteriormente desde el panel de edición.
 
-Si ya existe `editions/<shortname_curso>/`, la tarea de transformación no volverá a crear los recursos desde `recursos-editables/`, sino que reconocerá las versiones ya existentes.
+Si ya existe `editions/<shortname_curso>/`, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes.
     
 
 ## Configuración
@@ -71,6 +79,8 @@ Al activarla, se nos mostrarán distintas opciones:
 *   **Activar tarea programada para transformar recursos:** activa o desactiva el procesamiento de cursos por la tarea programada (aunque la tarea se ejecute, si esta opción está desmarcada no se procesará ningún curso).
     
 *   **Repositorio de contenidos:** selección del repositorio donde están contenidos todos los recursos exportados.
+    
+*   **Carpeta de contenidos fuente:** nombre de la carpeta dentro del repositorio donde están los contenidos originales de los cursos. Déjela vacía si las carpetas de los cursos están directamente en la raíz del repositorio. Indique `recursos-editables` (o el nombre correspondiente) si los contenidos están en una subcarpeta. Las versiones editadas siempre se guardan en `editions/`.
     
 *   **Aplicar a todos los cursos:** si se marca esta casilla, todos los cursos de la plataforma serán procesados. Si se desmarca, aparecerá el selector de categorías de curso.
     

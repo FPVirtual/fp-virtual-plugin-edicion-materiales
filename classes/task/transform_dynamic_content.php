@@ -258,7 +258,11 @@ class transform_dynamic_content extends scheduled_task {
                 get_string(
                     'no_associated_folder',
                     'local_educaaragon',
-                    ['course' => $course->shortname, 'repository' => $repository->get_name()]
+                    [
+                        'course' => $course->shortname,
+                        'repository' => $repository->get_name(),
+                        'folder' => $processcourse->get_source_folder_name() ?: get_string('repositoryroot', 'local_educaaragon'),
+                    ]
                 )
             );
         }

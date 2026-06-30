@@ -59,6 +59,9 @@ if ($hassiteconfig) {
         $page->add($setting);
     }
 
+    $setting = new admin_setting_configtext('local_educaaragon/sourcefolder', get_string('sourcefolder', 'local_educaaragon'), get_string('sourcefolder_desc', 'local_educaaragon'), '', PARAM_RAW_TRIMMED);
+    $page->add($setting);
+
     $setting = new admin_setting_configcheckbox('local_educaaragon/allcourses', get_string('allcourses', 'local_educaaragon'), get_string('allcourses_desc', 'local_educaaragon'), 0);
     $page->add($setting);
 

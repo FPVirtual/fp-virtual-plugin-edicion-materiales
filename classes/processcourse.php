@@ -50,7 +50,6 @@ require_once($CFG->dirroot . '/mod/resource/lib.php');
 
 class processcourse {
 
-    public const SOURCE_FOLDER = 'recursos-editables';
     public const EDITIONS_FOLDER = 'editions';
 
     private $course;
@@ -110,11 +109,29 @@ class processcourse {
      * @throws repository_exception
      */
     public function get_related_folder(): array {
-        $sourcefolder = $this->find_folder('/', self::SOURCE_FOLDER);
+        $sourcefoldername = $this->get_source_folder_name();
+        if ($sourcefoldername === '') {
+            return $this->find_folder('/', $this->course->shortname);
+        }
+        $sourcefolder = $this->find_folder('/', $sourcefoldername);
         if (empty($sourcefolder)) {
             return [];
         }
         return $this->find_folder($sourcefolder['path'], $this->course->shortname);
+    }
+
+    /**
+     * Returns the configured source folder name (relative to repository root).
+     * An empty value means the course folders are directly at the repository root.
+     *
+     * @return string
+     */
+    public function get_source_folder_name(): string {
+        $folder = get_config('local_educaaragon', 'sourcefolder');
+        if ($folder === false) {
+            return '';
+        }
+        return trim((string)$folder);
     }
 
     /**
