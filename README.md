@@ -22,7 +22,7 @@ Para que el plugin funcione, es necesario que se cree un repositorio dentro de M
 
 Los pasos a seguir son los siguientes:
 
-*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir las carpetas `materiales` (contendrá los recursos en formato HTML proporcionados por el cliente) y `editions` (la creará y gestionará el plugin para las versiones editadas).
+*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir las carpetas `recursos-editables` (contendrá los recursos en formato HTML proporcionados por el cliente) y `editions` (la creará y gestionará el plugin para las versiones editadas).
     
 *   Dentro de la administración de Moodle, ir a **Administración del sitio→ Extensiones → Repositorios → Gestionar Repositorios → Sistema de archivos**, debe estar marcado como “Activado y visible”
     
@@ -34,11 +34,11 @@ Los pasos a seguir son los siguientes:
 
 Dentro del repositorio que acabamos de crear, los contenidos se organizan en dos carpetas principales:
 
-### Carpeta `materiales/` (contenido fuente)
+### Carpeta `recursos-editables/` (contenido fuente)
 
 Aquí se colocan los contenidos originales que utilizará la tarea de transformación para dar de alta los recursos editables. Deberán seguir los siguientes requisitos:
 
-*   Dentro de `materiales/` deberá existir **una carpeta nombrada con el nombre corto (`shortname`) del curso** al que corresponda.
+*   Dentro de `recursos-editables/` deberá existir **una carpeta nombrada con el nombre corto (`shortname`) del curso** al que corresponda.
     
 *   Dentro de la carpeta del curso, debe existir **una carpeta por cada recurso que se vaya a generar**, recomendable que esté nombrada con `01`, `02`, `03`… según el orden de aparición del recurso en el curso, para facilitar la ordenación.
     
@@ -57,7 +57,7 @@ Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
 *   `original/`: copia del contenido del recurso editable tal como se generó en la primera transformación. No debe editarse ni eliminarse.
 *   `v1_2025_2026/`, `v2_.../`, etc.: versiones creadas posteriormente desde el panel de edición.
 
-Si ya existe `editions/<shortname_curso>/`, la tarea de transformación no volverá a crear los recursos desde `materiales/`, sino que reconocerá las versiones ya existentes.
+Si ya existe `editions/<shortname_curso>/`, la tarea de transformación no volverá a crear los recursos desde `recursos-editables/`, sino que reconocerá las versiones ya existentes.
     
 
 ## Configuración

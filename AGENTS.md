@@ -18,7 +18,7 @@ El plugin se instala como cualquier otro plugin Local de Moodle, en la ruta `/lo
 - **Backend:** PHP 7.4+ siguiendo la arquitectura estándar de Moodle.
 - **Frontend:** JavaScript AMD (RequireJS), jQuery, Mustache (templates del core de Moodle).
 - **Base de datos:** Tablas propias gestionadas mediante XMLDB y la API `persistent` de Moodle.
-- **Repositorio de archivos:** Requiere un repositorio de tipo **Sistema de archivos (filesystem)** configurado en Moodle. Los contenidos HTML de origen de los cursos deben almacenarse en `moodledata/repository/<nombre_repo>/materiales/<shortname_curso>/<orden>/index.html`. Las versiones editadas se guardan en `moodledata/repository/<nombre_repo>/editions/<shortname_curso>/<resourceid>/<version>/`.
+- **Repositorio de archivos:** Requiere un repositorio de tipo **Sistema de archivos (filesystem)** configurado en Moodle. Los contenidos HTML de origen de los cursos deben almacenarse en `moodledata/repository/<nombre_repo>/recursos-editables/<shortname_curso>/<orden>/index.html`. Las versiones editadas se guardan en `moodledata/repository/<nombre_repo>/editions/<shortname_curso>/<resourceid>/<version>/`.
 - **Procesamiento periódico:** Tarea programada de Moodle (`local_educaaragon\task\transform_dynamic_content`) que se ejecuta por defecto todos los días a las 03:00 h.
 - **Eventos:** Observadores del core (`course_module_deleted`, `course_deleted`) para limpieza de datos.
 
@@ -122,10 +122,10 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 
 ### 5.1 Transformación inicial (tarea programada)
 1. La tarea `transform_dynamic_content` recorre los cursos de la categoría configurada (o todos).
-2. Por cada curso, busca en el repositorio filesystem la carpeta `materiales/<shortname_curso>/`.
+2. Por cada curso, busca en el repositorio filesystem la carpeta `recursos-editables/<shortname_curso>/`.
 3. Si además existe `editions/<shortname_curso>/`, el curso ya fue procesado antes: la tarea solo reconoce las versiones existentes y asegura que cada recurso editable tenga su carpeta `original`.
 4. Si no existe `editions/<shortname_curso>/`, es el primer procesado. Identifica los módulos SCORM e IMSCP del curso (excepto sección 0) y crea, para cada contenido, dos recursos de tipo `mod_resource`:
-   - **Editable:** recurso HTML estándar con todos los archivos de `materiales/<shortname_curso>/<orden>/`.
+   - **Editable:** recurso HTML estándar con todos los archivos de `recursos-editables/<shortname_curso>/<orden>/`.
    - **Imprimible:** recurso HTML donde se unifican todos los archivos `.html` en un único `index.html`, eliminando navegación y añadiendo CSS de impresión.
 5. Oculta los módulos SCORM/IMSCP originales, registra todo en `local_educa_editables` y crea las carpetas `editions/<shortname_curso>/<resourceid>/original/` con el contenido de cada recurso editable.
 
@@ -141,7 +141,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 
 ### 5.3 Estructura del repositorio filesystem
 - **Contenido fuente** (solo lectura para la tarea de transformación):
-  `materiales/<shortname_curso>/<orden>/`
+  `recursos-editables/<shortname_curso>/<orden>/`
   Cada carpeta `<orden>` (`01`, `02`…) debe contener todos los archivos del recurso, incluyendo un `index.html` como disparador.
 - **Versiones editadas**:
   `editions/<shortname_curso>/<resourceid>/`

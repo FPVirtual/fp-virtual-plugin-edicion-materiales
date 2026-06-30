@@ -50,7 +50,7 @@ require_once($CFG->dirroot . '/mod/resource/lib.php');
 
 class processcourse {
 
-    public const SOURCE_FOLDER = 'materiales';
+    public const SOURCE_FOLDER = 'recursos-editables';
     public const EDITIONS_FOLDER = 'editions';
 
     private $course;
