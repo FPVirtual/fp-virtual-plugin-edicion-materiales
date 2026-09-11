@@ -1,9 +1,11 @@
-# fp-distancia-plugin-edicion-materiales
+# fp-virtual-plugin-edicion-materiales
 
-- [fp-distancia-plugin-edicion-materiales](#fp-distancia-plugin-edicion-materiales)
+- [fp-virtual-plugin-edicion-materiales](#fp-virtual-plugin-edicion-materiales)
   - [Plugin de Moodle para la edición de materiales del ministerio](#plugin-de-moodle-para-la-edición-de-materiales-del-ministerio)
+    - [Requisitos](#requisitos)
 - [Repositorio](#repositorio)
     - [Contenido del repositorio](#contenido-del-repositorio)
+    - [Carpeta temporal de procesado (`fileprocessing/`)](#carpeta-temporal-de-procesado-fileprocessing)
   - [Configuración](#configuración)
     - [Tarea Programada](#tarea-programada)
     - [Ejecución manual de la tarea](#ejecución-manual-de-la-tarea)
@@ -14,6 +16,13 @@
 El plugin se instala como cualquier otro plugin Local, añadiendo los archivos dentro de la carpeta /local/educaaragon/ y pasando por la administración.
 
 Durante la instalación, el plugin creará en la base de datos las tablas, servicios, eventos, tarea programada y capacidades que necesita para funcionar.
+
+### Requisitos
+
+*   Moodle ≥ 4.1 (`2022112811`)
+*   PHP 7.4 o superior (el plugin es compatible con PHP 8.2)
+*   Un repositorio de tipo **Sistema de archivos** configurado (ver siguiente apartado)
+*   Capacidad de ejecución del cron de Moodle (recomendado cada 30 s – 1 min)
 
 Repositorio
 ===========
@@ -66,11 +75,17 @@ Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
 *   `v1_2025_2026/`, `v2_.../`, etc.: versiones creadas posteriormente desde el panel de edición.
 
 Si ya existe `editions/<shortname_curso>/` y el curso ya tiene recursos editables registrados por el plugin, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes. Si no hay registros de recursos editables, se tratará como un procesado inicial.
-    
+
+### Carpeta temporal de procesado (`fileprocessing/`)
+
+La generación de los recursos imprimibles utiliza como ruta de trabajo intermedia la carpeta `local/educaaragon/fileprocessing/` dentro de la instalación de Moodle. Debe tener permisos de escritura para el usuario del servidor web (el plugin la crea automáticamente si no existe al procesar un curso).
+
+> **En entornos contenerizados (Docker/Podman):** esta carpeta vive dentro del contenedor y normalmente **no está montada en el host**, por lo que no la verás desde el sistema de archivos del servidor. Si necesitas inspeccionarla, hazlo desde dentro del contenedor.
+
 
 ## Configuración
 
-Una vez instalado el plugin, para su configuración tendremos hay que ir a **Administración del sitio → Cursos → Educa Aragón → Ajustes generales**
+Una vez instalado el plugin, para su configuración tendremos que ir a **Administración del sitio → Cursos → Educa Aragón → Ajustes generales**
 
 Aquí podremos activar o desactivar el procesamiento de tareas.
 
@@ -84,7 +99,7 @@ Al activarla, se nos mostrarán distintas opciones:
     
 *   **Aplicar a todos los cursos:** si se marca esta casilla, todos los cursos de la plataforma serán procesados. Si se desmarca, aparecerá el selector de categorías de curso.
     
-*   **Categoría:** el proceso de cursos sólo se harán sobre los cursos que pertenezcan a esta categoría (incluyendo los cursos de las subcategorías)
+*   **Categoría:** el proceso de cursos sólo se hará sobre los cursos que pertenezcan a esta categoría (incluyendo los cursos de las subcategorías)
     
 
 ### Tarea Programada
@@ -93,7 +108,7 @@ Para configurar la tarea programada del plugin hay que ir a **Administración de
 
 Desde este panel podrá **configurar la tarea de la misma forma que cualquier otra tarea de moodle, o leer los registros que se han generado durante su ejecución.**
 
-Documentación oficial para configurar tareas programadas: [https://docs.moodle.org/310/en/Scheduled\_tasks](https://docs.moodle.org/310/en/Scheduled_tasks)
+Documentación oficial para configurar tareas programadas: [https://docs.moodle.org/4x/en/Scheduled\_tasks](https://docs.moodle.org/4x/en/Scheduled_tasks)
 
 Debido a la posible duración de la tarea y a que crea nuevos contenidos en el curso para los estudiantes finales, se recomienda configurar la tarea para que se ejecute una vez al día en horario con poca concurrencia en la plataforma (por defecto, se crea configurada para que pase todos los días a las 3 a.m)
 
@@ -102,7 +117,11 @@ Independientemente del periodo de ejecución que se programe para esta tarea, **
 
 ### Ejecución manual de la tarea
 
-Además de la ejecución programada, la tarea puede lanzarse de forma manual cuando sea necesario. Existen dos métodos:
+Además de la ejecución programada, la tarea puede lanzarse de forma manual cuando sea necesario. Existen tres métodos:
+
+**Desde la página de lanzamiento del plugin:**
+
+En **Administración del sitio → Cursos → Educa Aragón → Lanzar tarea de transformación** podrá ejecutar la transformación de forma inmediata, bien sobre **todos los cursos configurados**, bien sobre **un curso concreto** seleccionándolo del listado (dispone de un buscador para localizarlo fácilmente).
 
 **Desde la interfaz web:**
 
