@@ -19,6 +19,7 @@ namespace local_educaaragon;
 use cm_info;
 use coding_exception;
 use component_generator_base;
+use context_module;
 use core\invalid_persistent_exception;
 use dml_exception;
 use DOMDocument;
@@ -79,6 +80,9 @@ class processcourse {
         $this->resourcegenerator = $resourcegenerator;
         $this->usercontextid = $usercontextid;
         $this->processingroute = $CFG->dirroot . '/local/educaaragon/fileprocessing/';
+        if (!is_dir($this->processingroute)) {
+            @mkdir($this->processingroute, 0775, true);
+        }
     }
 
     /**
@@ -389,6 +393,7 @@ class processcourse {
         $options = ['section' => $cm->sectionnum];
         $files = $this->repository->get_listing($folder['path'])['list'];
         $fs = get_file_storage();
+        $filestopopulate = [];
         foreach ($files as $file) {
             $fileinfo = [
                 'component' => 'user',
@@ -400,6 +405,7 @@ class processcourse {
             ];
             $filepath = $this->repository->get_file($file['path'])['path'];
             $fs->create_file_from_pathname($fileinfo, $filepath);
+            $filestopopulate[] = ['title' => $file['title'], 'path' => $filepath];
         }
         $indexhtml = $fs->get_file($this->usercontextid, 'user', 'draft', $record['files'], '/', 'index.html');
         if ($indexhtml === false) {
@@ -427,6 +433,7 @@ class processcourse {
         $instance = $this->resourcegenerator->create_instance($record, $options);
         $instance->intro = '';
         $DB->update_record('resource', $instance);
+        $this->ensure_instance_files($instance, $filestopopulate);
         return $instance;
     }
 
@@ -444,6 +451,7 @@ class processcourse {
      */
     private function create_pintable_resource(cm_info $cm, array $folder): stdClass {
         global $DB;
+        $this->empty_processingroute();
         $files = $this->repository->get_listing($folder['path'])['list'];
         foreach ($files as $file) {
             $filepath = $this->repository->get_file($file['path'])['path'];
@@ -530,6 +538,13 @@ class processcourse {
         $instance = $this->resourcegenerator->create_instance($record, $options);
         $instance->intro = '';
         $DB->update_record('resource', $instance);
+        $filestopopulate = [];
+        foreach (scandir($this->processingroute) as $processingfile) {
+            if ($processingfile !== '.' && $processingfile !== '..') {
+                $filestopopulate[] = ['title' => $processingfile, 'path' => $this->processingroute . $processingfile];
+            }
+        }
+        $this->ensure_instance_files($instance, $filestopopulate);
         $this->empty_processingroute();
         return $instance;
     }
@@ -561,6 +576,7 @@ class processcourse {
         $options = ['section' => $section->section];
         $files = $this->repository->get_listing($folder['path'])['list'];
         $fs = get_file_storage();
+        $filestopopulate = [];
         foreach ($files as $file) {
             $fileinfo = [
                 'component' => 'user',
@@ -572,6 +588,7 @@ class processcourse {
             ];
             $filepath = $this->repository->get_file($file['path'])['path'];
             $fs->create_file_from_pathname($fileinfo, $filepath);
+            $filestopopulate[] = ['title' => $file['title'], 'path' => $filepath];
         }
         $indexhtml = $fs->get_file($this->usercontextid, 'user', 'draft', $record['files'], '/', 'index.html');
         if ($indexhtml === false) {
@@ -599,6 +616,7 @@ class processcourse {
         $instance = $this->resourcegenerator->create_instance($record, $options);
         $instance->intro = '';
         $DB->update_record('resource', $instance);
+        $this->ensure_instance_files($instance, $filestopopulate);
         return $instance;
     }
 
@@ -750,11 +768,47 @@ class processcourse {
      * @return void
      */
     private function empty_processingroute(): void {
-        $files = glob($this->processingroute . '*');
+        $normalfiles = glob($this->processingroute . '*');
+        $dotfiles = glob($this->processingroute . '.*');
+        $files = array_merge($normalfiles !== false ? $normalfiles : [], $dotfiles !== false ? $dotfiles : []);
         foreach ($files as $file) {
-            if (is_file($file)) {
+            if (is_file($file) && basename($file) !== '.' && basename($file) !== '..') {
                 unlink($file);
             }
+        }
+    }
+
+    /**
+     * Ensures the resource content area has been populated.
+     * The data generator used to create the instance may leave the content area empty,
+     * so the files are created directly from the given local paths when that happens.
+     *
+     * @param stdClass $instance
+     * @param array $files List of files with 'title' and local filesystem 'path'.
+     * @return void
+     */
+    private function ensure_instance_files(stdClass $instance, array $files): void {
+        $context = context_module::instance($instance->cmid);
+        $fs = get_file_storage();
+        if (!$fs->is_area_empty($context->id, 'mod_resource', 'content', 0)) {
+            return;
+        }
+        foreach ($files as $file) {
+            $fileinfo = [
+                'component' => 'mod_resource',
+                'filearea' => 'content',
+                'contextid' => $context->id,
+                'itemid' => 0,
+                'filename' => $file['title'],
+                'filepath' => '/',
+            ];
+            $fs->create_file_from_pathname($fileinfo, $file['path']);
+        }
+        $indexhtml = $fs->get_file($context->id, 'mod_resource', 'content', 0, '/', 'index.html');
+        if ($indexhtml !== false) {
+            $filepath = file_correct_filepath('/');
+            file_reset_sortorder($context->id, 'mod_resource', 'content', $indexhtml->get_itemid());
+            file_set_sortorder($context->id, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
         }
     }
 

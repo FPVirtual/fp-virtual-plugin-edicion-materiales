@@ -263,7 +263,8 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
 **Puntos importantes:**
 
 *   El emparejamiento entre carpetas antiguas (ids de la instalación anterior) y los recursos nuevos es **posicional**: se ordenan numéricamente ambas listas y se emparejan por posición. Compruébelo siempre con `--dry-run --verbose` antes de migrar.
-*   Las versiones migradas se **copian** (no se mueven) a la carpeta del id nuevo, por lo que empiezan a aparecer automáticamente en el panel de versiones del recurso. Las carpetas antiguas quedan intactas.
+*   Las versiones migradas se **copian** (no se mueven) a la carpeta del id nuevo, por lo que empiezan a aparecer automáticamente en el panel de versiones del recurso. No es necesario aplicarlas: el recurso recién creado ya muestra a los alumnos el contenido `original`. El paso 4 (`--apply-version`) solo se usa si se quiere que los alumnos vean directamente una versión migrada.
+*   Las carpetas antiguas (ids de la instalación anterior) quedan intactas tras migrar: pueden conservarse como copia de seguridad o eliminarse manualmente del repositorio cuando se haya verificado que las versiones migradas funcionan correctamente.
 *   La migración **no genera registros** en la tabla de auditoría `local_educa_edited`: las versiones se ven en el panel de edición, pero no constan en el registro de ediciones.
 
 **Otros scripts CLI relacionados:**
@@ -274,6 +275,8 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
     ```bash
     php local/educaaragon/cli/reprocess_course.php --shortname=<shortname>
     ```
+
+> **Cuidado con el botón "Reprocesar" de la web:** en el panel de cursos procesados (`processedcourses.php`) hay una acción "reprocesar" que llama a `reprocessing_external::reprocessing_course()`. Esta acción **elimina toda la carpeta `editions/<shortname>` del curso**, incluidas las versiones editadas y las carpetas de ids antiguos, y deja el curso como no procesado. Haga una copia de seguridad de `editions/<shortname>` antes de usarla. Para un reprocesado no destructivo use el lanzador manual (ver *Ejecución manual de la tarea*).
 
 
 Desinstalación

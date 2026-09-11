@@ -315,10 +315,18 @@ class transform_dynamic_content extends scheduled_task {
             $i = 0;
             foreach ($resources as $resource) {
                 $start = microtime(true);
-                $cm = $DB->get_record('course_modules', ['course' => $course->id, 'instance' => $resource->resourceid], 'id');
-                $cminfo = $courseinfo->get_cm($cm->id);
-                $manageeditable = new manage_editable_resource($cminfo, 'original');
-                $manageeditable->process_resource_links(true);
+                try {
+                    $cm = $DB->get_record('course_modules', ['course' => $course->id, 'instance' => $resource->resourceid], 'id');
+                    $cminfo = $courseinfo->get_cm($cm->id);
+                    $manageeditable = new manage_editable_resource($cminfo, 'original');
+                    $manageeditable->process_resource_links(true);
+                } catch (Exception $e) {
+                    mtrace(get_string('processlink_error', 'local_educaaragon', [
+                        'resourceid' => $resource->resourceid,
+                        'error' => $e->getMessage(),
+                    ]));
+                    continue;
+                }
                 $i++;
                 mtrace(
                     get_string('processlink', 'local_educaaragon') .

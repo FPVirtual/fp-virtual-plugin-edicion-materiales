@@ -31,9 +31,7 @@ global $CFG, $DB, $OUTPUT, $PAGE;
 
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/task/transform_dynamic_content.php');
-require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_external.php');
 
-use local_educaaragon\external\reprocessing_external;
 use local_educaaragon\task\transform_dynamic_content;
 
 require_login();
@@ -98,10 +96,6 @@ if ($scope === 'all') {
             $output .= $OUTPUT->single_button($confirmurl, get_string('launchtask_reprocess', 'local_educaaragon'), 'post');
             $output .= html_writer::end_div();
         } else {
-            if ($isprocessed && $confirm) {
-                reprocessing_external::reprocessing_course($course->id);
-            }
-
             raise_memory_limit(MEMORY_EXTRA);
             core_php_time_limit::raise(0);
 

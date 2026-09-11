@@ -26,6 +26,7 @@ use DOMElement;
 use DOMException;
 use DOMNode;
 use DOMXPath;
+use Exception;
 use file_exception;
 use html_writer;
 use moodle_exception;
@@ -140,23 +141,65 @@ class manage_editable_resource {
         $listing = $this->repository->get_listing($this->editfolder['path']);
         foreach($listing['list'] as $version) {
             if ($version['title'] === 'original') {
+                if (!$this->folder_has_index_file($version['path'])) {
+                    $this->rebuild_original_from_filearea();
+                }
                 return $version;
             }
         }
-        if (!mkdir($concurrentDirectory = $this->repository->get_rootpath() . 'editions/' . $this->course->shortname . '/' . $this->cm->instance . '/original', 0777, false) && !is_dir($concurrentDirectory)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
-        }
-        $context = context_module::instance($this->cm->id);
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, 'sortorder DESC, id ASC', false);
-        foreach ($files as $file) {
-            $file->copy_content_to($concurrentDirectory . '/' . $file->get_filename());
-        }
+        $this->rebuild_original_from_filearea();
 
         $manage_logs = new manage_logs();
         $manage_logs->create_edited($this->course->id, $this->cm->instance, 'version_original_created', null, 'original');
 
         return $this->get_original_content();
+    }
+
+    /**
+     * Checks whether the given repository folder contains an index.html file.
+     *
+     * @param string $repositorypath
+     * @return bool
+     * @throws repository_exception
+     */
+    private function folder_has_index_file(string $repositorypath): bool {
+        $files = $this->repository->get_listing($repositorypath)['list'];
+        foreach ($files as $file) {
+            if ($file['title'] === 'index.html') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Fills the original version folder with the files of the editable resource.
+     * Throws a clear error when the resource has no content to copy from.
+     *
+     * @return void
+     * @throws coding_exception
+     * @throws dml_exception
+     */
+    private function rebuild_original_from_filearea(): void {
+        $originalpath = $this->repository->get_rootpath() . 'editions/' . $this->course->shortname . '/' . $this->cm->instance . '/original';
+        if (!is_dir($originalpath) && !mkdir($concurrentDirectory = $originalpath, 0777, false) && !is_dir($concurrentDirectory)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $originalpath));
+        }
+        $context = context_module::instance($this->cm->id);
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, 'sortorder DESC, id ASC', false);
+        foreach ($files as $file) {
+            $file->copy_content_to($originalpath . '/' . $file->get_filename());
+        }
+        if (!file_exists($originalpath . '/index.html')) {
+            throw new RuntimeException(
+                get_string(
+                    'editable_filearea_empty',
+                    'local_educaaragon',
+                    ['cmname' => $this->cm->name, 'course' => $this->course->id]
+                )
+            );
+        }
     }
 
     /**
@@ -535,6 +578,19 @@ class manage_editable_resource {
             $this->versionloaded = $this->get_versionloaded($version);
         }
         $files = $this->repository->get_listing($this->versionloaded['path'])['list'];
+        if (empty($files)) {
+            throw new RuntimeException(
+                get_string(
+                    'version_folder_empty',
+                    'local_educaaragon',
+                    [
+                        'version' => $this->versionloaded['title'],
+                        'cmname' => $this->cm->name,
+                        'course' => $this->course->id,
+                    ]
+                )
+            );
+        }
         $fs = get_file_storage();
         $context = context_module::instance($this->cm->id)->id;
         foreach ($files as $file) {
@@ -596,62 +652,67 @@ class manage_editable_resource {
         if (!mkdir($folderprintable = $this->repository->get_rootpath() . 'editions/' . $this->course->shortname . '/' . $this->cm->instance . '/' . $this->versionloaded['title'] . '/printable', 0777, false) && !is_dir($folderprintable)) {
             throw new RuntimeException(sprintf('Directory "%s" was not created', $folderprintable));
         }
-        $cminfo = get_fast_modinfo($this->course)->get_cm($cmprintable->id);
-        $files = $this->repository->get_listing($this->versionloaded['path'])['list'];
-        foreach ($files as $file) {
-            if ($file['title'] === 'printable') {
-                continue;
+        try {
+            $cminfo = get_fast_modinfo($this->course)->get_cm($cmprintable->id);
+            $files = $this->repository->get_listing($this->versionloaded['path'])['list'];
+            foreach ($files as $file) {
+                if ($file['title'] === 'printable') {
+                    continue;
+                }
+                $filepath = $this->repository->get_file($file['path'])['path'];
+                if (!copy($filepath, $folderprintable . '/' . $file['title'])) {
+                    $this->delete_folder($folderprintable . '/');
+                    return false;
+                }
             }
-            $filepath = $this->repository->get_file($file['path'])['path'];
-            if (!copy($filepath, $folderprintable . '/' . $file['title'])) {
-                $this->delete_folder($folderprintable . '/');
-                return false;
+            $localfiles = scandir($folderprintable . '/');
+            $htmls = [];
+            foreach ($localfiles as $localfile) {
+                if (strpos($localfile, '.html') !== false) {
+                    $htmls[] = $localfile;
+                }
             }
-        }
-        $localfiles = scandir($folderprintable . '/');
-        $htmls = [];
-        foreach ($localfiles as $localfile) {
-            if (strpos($localfile, '.html') !== false) {
-                $htmls[] = $localfile;
+            $index = array_search('index.html', $htmls, false);
+            if ($index === false) {
+                throw new RuntimeException(
+                    get_string(
+                        'no_index_file',
+                        'local_educaaragon',
+                        ['cmname' => $cminfo->name, 'course' => $cminfo->course]
+                    )
+                );
             }
-        }
-        $index = array_search('index.html', $htmls, false);
-        if ($index === false) {
-            throw new RuntimeException(
-                get_string(
-                    'no_index_file',
-                    'local_educaaragon',
-                    ['cmname' => $cminfo->name, 'course' => $cminfo->course]
-                )
-            );
-        }
 
-        $this->unify_files($folderprintable . '/');
+            $this->unify_files($folderprintable . '/');
 
-        $fs = get_file_storage();
-        $context = context_module::instance($cminfo->id)->id;
-        foreach ($localfiles as $file) {
-            if ($file === '.' || $file === '..') {
-                continue;
+            $fs = get_file_storage();
+            $context = context_module::instance($cminfo->id)->id;
+            foreach ($localfiles as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                if ($fs->file_exists($context, 'mod_resource', 'content', 0, '/', $file)) {
+                    $fs->delete_area_files($context, 'mod_resource', 'content', 0);
+                }
+                $fileinfo = [
+                    'component' => 'mod_resource',
+                    'filearea' => 'content',
+                    'contextid' => $context,
+                    'itemid' => 0,
+                    'filename' => $file,
+                    'filepath' => '/',
+                ];
+                $fs->create_file_from_pathname($fileinfo, $folderprintable . '/' . $file);
             }
-            if ($fs->file_exists($context, 'mod_resource', 'content', 0, '/', $file)) {
-                $fs->delete_area_files($context, 'mod_resource', 'content', 0);
+            $indexhtml = $fs->get_file($context, 'mod_resource', 'content', 0, '/', 'index.html');
+            if ($indexhtml !== false) {
+                $filepath = file_correct_filepath('/');
+                file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
+                file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
             }
-            $fileinfo = [
-                'component' => 'mod_resource',
-                'filearea' => 'content',
-                'contextid' => $context,
-                'itemid' => 0,
-                'filename' => $file,
-                'filepath' => '/',
-            ];
-            $fs->create_file_from_pathname($fileinfo, $folderprintable . '/' . $file);
-        }
-        $indexhtml = $fs->get_file($context, 'mod_resource', 'content', 0, '/', 'index.html');
-        if ($indexhtml !== false) {
-            $filepath = file_correct_filepath('/');
-            file_reset_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid());
-            file_set_sortorder($context, 'mod_resource', 'content', $indexhtml->get_itemid(), $filepath, $indexhtml->get_filename(), 1);
+        } catch (Exception $e) {
+            $this->delete_folder($folderprintable . '/');
+            throw $e;
         }
         $this->delete_folder($folderprintable . '/');
 
@@ -735,6 +796,9 @@ class manage_editable_resource {
      */
     private function delete_folder(string $path): void {
         $files = glob($path . '*');
+        if ($files === false) {
+            return;
+        }
         foreach ($files as $file) {
             if (is_file($file)) {
                 unlink($file);
