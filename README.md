@@ -5,10 +5,14 @@
     - [Requisitos](#requisitos)
 - [Repositorio](#repositorio)
     - [Contenido del repositorio](#contenido-del-repositorio)
+    - [Contenido fuente](#contenido-fuente)
+    - [Carpeta `editions/` (versiones editadas)](#carpeta-editions-versiones-editadas)
     - [Carpeta temporal de procesado (`fileprocessing/`)](#carpeta-temporal-de-procesado-fileprocessing)
   - [Configuración](#configuración)
     - [Tarea Programada](#tarea-programada)
     - [Ejecución manual de la tarea](#ejecución-manual-de-la-tarea)
+      - [Funcionamiento del proceso de importación](#funcionamiento-del-proceso-de-importación)
+      - [Migración de versiones entre instalaciones (CLI)](#migración-de-versiones-entre-instalaciones-cli)
 - [Desinstalación](#desinstalación)
 
 ## Plugin de Moodle para la edición de materiales del ministerio
@@ -156,6 +160,120 @@ docker compose exec <servicio_moodle> php /var/www/html/admin/cli/scheduled_task
 ```
 
 > Asegúrate de reemplazar `<nombre_contenedor_moodle>` o `<servicio_moodle>` por el nombre real de tu contenedor/servicio, y de que la ruta `/var/www/html` corresponda al directorio donde esté instalado Moodle dentro del contenedor.
+
+#### Funcionamiento del proceso de importación
+
+Cuando la tarea **"Transformar contenidos dinámicos"** procesa un curso, realiza los siguientes pasos:
+
+**1. Arranque y selección de cursos**
+
+1.  Comprueba el ajuste *Activar tarea programada para transformar recursos*; si está desactivado, no se procesa nada (salvo que se fuerce la ejecución desde el lanzador manual).
+2.  Obtiene los cursos a procesar: todos los de la plataforma si *Aplicar a todos los cursos* está marcado, o los cursos visibles de la *Categoría* configurada (incluyendo sus subcategorías).
+3.  Descarta los cursos que ya consten como procesados en la tabla `local_educa_processedcourses`.
+4.  Inicializa el repositorio de archivos, el generador de instancias de `mod_resource` y el contexto del usuario administrador.
+
+**2. Preparación del curso**
+
+1.  Registra el curso en `local_educa_processedcourses` (estado pendiente).
+2.  Localiza la carpeta del curso en el repositorio según el ajuste *Carpeta de contenidos fuente*: `<raíz_repo>/<shortname_curso>` si está vacío, o `<raíz_repo>/<carpeta_fuente>/<shortname_curso>` si tiene valor. Si no la encuentra, marca el curso con el error `no_associated_folder` y pasa al siguiente.
+3.  Decide el modo de procesado:
+    *   Si existe `editions/<shortname_curso>/` **y** el curso ya tiene recursos editables registrados en `local_educa_editables` → **modo reconocimiento** (paso 5).
+    *   En caso contrario → **procesado inicial** (pasos 3 y 4).
+
+**3. Procesado inicial: transformación**
+
+1.  Lista las subcarpetas de contenido del curso (`01`, `02`, …) y los módulos **SCORM/IMSCP** del curso (los de la sección 0 se ignoran).
+2.  Si el número de módulos SCORM/IMSCP coincide con el número de carpetas, intenta **asociar** cada módulo con su carpeta comparando los dígitos del nombre del módulo (`01`, `02`…) con el nombre de la carpeta.
+3.  Si las asociaciones no son posibles, o si no hay contenidos dinámicos, genera los recursos **sin asociación**.
+
+**4. Generación de los recursos** (por cada recurso)
+
+*Recurso editable:*
+
+1.  Crea un `mod_resource` HTML con el mismo nombre y en la misma sección que el SCORM original. En modo sin asociación se nombra `<orden> - <título>` (el título se extrae de la etiqueta `<title>` del `index.html`) y se coloca en una sección nueva llamada **"Materiales Editables"**.
+2.  Copia todos los archivos de la carpeta del repositorio al recurso, con `index.html` como archivo principal.
+3.  Oculta el módulo original y sitúa el nuevo recurso justo después de él.
+
+*Recurso imprimible:*
+
+1.  Copia los archivos a la carpeta temporal `fileprocessing/` y los unifica en un único `index.html`: elimina la navegación (`siteNav` y paginaciones superior e inferior), inserta el contenido de cada página enlazada dentro del documento principal, y añade reglas CSS de impresión (saltos de página) junto con metadatos de no-caché.
+2.  Crea un segundo `mod_resource` llamado `<nombre> (imprimible)` con el resultado unificado, colocado justo después del recurso editable.
+
+*Versión original:*
+
+1.  Crea en el repositorio la carpeta `editions/<shortname_curso>/<resourceid>/original/` con una copia de los archivos del recurso editable (si no existía ya).
+2.  Registra ambos recursos (editable e imprimible) en `local_educa_editables` con versión `original`.
+
+**5. Modo reconocimiento (cursos ya procesados)**
+
+La tarea no vuelve a crear recursos: únicamente recorre los recursos editables registrados del curso y se asegura de que cada uno disponga de su carpeta `original` en `editions/<shortname_curso>/<resourceid>/`.
+
+**6. Análisis de enlaces**
+
+Tras transformar los contenidos, para cada recurso editable del curso:
+
+1.  Borra los resultados anteriores en `local_educa_resource_links`.
+2.  Analiza los archivos HTML de la versión `original` en busca de enlaces y registra su estado (activo, roto, corregido…) en dicha tabla.
+
+**7. Resultado del procesado**
+
+El curso queda registrado en `local_educa_processedcourses` con uno de estos mensajes:
+
+*   `correctly_processed`: procesado correctamente (modo asociación o reconocimiento).
+*   `correctly_processed_needassociation`: procesado correctamente, pero los recursos se generaron sin asociación; conviene revisar la correspondencia entre recursos y carpetas.
+*   `no_associated_folder`: no se encontró la carpeta del curso en el repositorio.
+*   Mensaje de error, si el procesado falló por cualquier otra causa.
+
+
+#### Migración de versiones entre instalaciones (CLI)
+
+Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva la carpeta `editions/` de una instalación anterior, los recursos se vuelven a crear con **ids nuevos** y las versiones editadas quedan "huérfanas" bajo los ids antiguos. El script `cli/migrate_edition_versions.php` migra esas versiones a los ids nuevos para que vuelvan a aparecer en el panel de edición.
+
+**Flujo completo:**
+
+1.  Procesar el curso con la tarea de transformación (ver *Ejecución manual de la tarea*). Se crean los recursos editables/imprimibles y sus carpetas `original` con los ids nuevos.
+2.  Simular la migración y comprobar el emparejamiento:
+
+    ```bash
+    php local/educaaragon/cli/migrate_edition_versions.php --course=<shortname> --dry-run --verbose
+    ```
+
+3.  Ejecutar la migración real:
+
+    ```bash
+    php local/educaaragon/cli/migrate_edition_versions.php --course=<shortname> --verbose
+    ```
+
+4.  Opcionalmente, aplicar una versión migrada a los módulos del curso:
+
+    ```bash
+    php local/educaaragon/cli/migrate_edition_versions.php --course=<shortname> --apply-version=v1_2025-2026
+    ```
+
+**Opciones del script:**
+
+| Opción | Descripción |
+|---|---|
+| `--course=SHORTNAME` | Filtra por curso (puede repetirse). Sin ella, procesa todos los cursos. |
+| `--apply-version=NOMBRE` | Aplica esa versión a los módulos tras migrar. Por defecto **no se aplica ninguna versión**: no hace falta, porque los recursos recién creados ya contienen el contenido `original`. |
+| `--include-original` | También copia la carpeta `original` antigua (por defecto se omite, ya que el procesado la regenera). |
+| `--dry-run` | Muestra qué haría sin aplicar cambios. |
+| `--verbose` | Muestra el detalle de cada recurso. |
+
+**Puntos importantes:**
+
+*   El emparejamiento entre carpetas antiguas (ids de la instalación anterior) y los recursos nuevos es **posicional**: se ordenan numéricamente ambas listas y se emparejan por posición. Compruébelo siempre con `--dry-run --verbose` antes de migrar.
+*   Las versiones migradas se **copian** (no se mueven) a la carpeta del id nuevo, por lo que empiezan a aparecer automáticamente en el panel de versiones del recurso. Las carpetas antiguas quedan intactas.
+*   La migración **no genera registros** en la tabla de auditoría `local_educa_edited`: las versiones se ven en el panel de edición, pero no constan en el registro de ediciones.
+
+**Otros scripts CLI relacionados:**
+
+*   `cli/restore_versions.php`: reaplica masivamente la versión `original` de `editions/` a los módulos del curso. Útil para revertir recursos a su estado inicial. Soporta `--course`, `--category`, `--dry-run` y `--verbose`.
+*   `cli/reprocess_course.php`: deja un curso como "no procesado" para que la tarea lo regenere. Borra los recursos editables/imprimibles del curso, sus registros en las tablas del plugin y **toda** la carpeta `editions/<shortname>`, incluidas las carpetas de ids antiguos. **Haga una copia de seguridad de `editions/<shortname>` antes de usarlo.**
+
+    ```bash
+    php local/educaaragon/cli/reprocess_course.php --shortname=<shortname>
+    ```
 
 
 Desinstalación
