@@ -53,6 +53,7 @@ local/educaaragon/
 │   ├── processcourse.php              # Lógica principal de transformación SCORM/IMSCP → HTML
 │   ├── manage_editable_resource.php   # Gestión de versiones, archivos y aplicación
 │   ├── manage_logs.php                # Helper de logs y persistencia
+│   ├── edition_versions_migrator.php  # Migración/importación de versiones entre resourceids (tarea + CLI)
 │   ├── eventobservers.php             # Limpieza de datos ante eliminaciones
 │   ├── educa_editables.php            # Clase persistente (tabla local_educa_editables)
 │   ├── educa_edited.php               # Clase persistente (tabla local_educa_edited)

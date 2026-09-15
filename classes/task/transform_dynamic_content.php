@@ -31,6 +31,7 @@ use core\task\scheduled_task;
 use core_course_external;
 use dml_exception;
 use Exception;
+use local_educaaragon\edition_versions_migrator;
 use local_educaaragon\external\reprocessing_external;
 use local_educaaragon\manage_editable_resource;
 use local_educaaragon\manage_logs;
@@ -52,6 +53,7 @@ require_once($CFG->dirroot . '/lib/phpunit/classes/util.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/manage_logs.php');
 require_once($CFG->dirroot . '/lib/modinfolib.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_external.php');
+require_once($CFG->dirroot . '/local/educaaragon/classes/edition_versions_migrator.php');
 
 
 class transform_dynamic_content extends scheduled_task {
@@ -64,6 +66,9 @@ class transform_dynamic_content extends scheduled_task {
 
     /** @var int|null */
     private $usercontext = null;
+
+    /** @var bool Whether the course currently being processed is processed for the first time. */
+    private $firstprocessing = false;
 
     /**
      * Return the task's name as shown in admin screens.
@@ -176,6 +181,7 @@ class transform_dynamic_content extends scheduled_task {
             $this->procces_course($course, $this->repository, $this->resourcegenerator, $this->usercontext);
             mtrace(get_string('processresourcelinks', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
             $this->procces_resource_links($course);
+            $this->import_edition_versions($course);
             mtrace( get_string('course_processed', 'local_educaaragon') . round(microtime(true) - $start, 2) . 's' . PHP_EOL
                 . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage())
             );
@@ -250,6 +256,7 @@ class transform_dynamic_content extends scheduled_task {
         int $usercontext) {
         $manage_logs = new manage_logs();
         $manage_logs->create_processed_course($course->id);
+        $this->firstprocessing = false;
         $processcourse = new processcourse($course, $repository, $resourcegenerator, $usercontext);
         $repositoryfolder = $processcourse->get_related_folder();
         if (empty($repositoryfolder)) {
@@ -275,6 +282,7 @@ class transform_dynamic_content extends scheduled_task {
             $manage_logs->update_proccesed_course(true, 'correctly_processed');
             return;
         }
+        $this->firstprocessing = true;
 
         $contentsoffolder = $processcourse->get_contents_for_course($repositoryfolder['path']);
         /** @var cm_info[] $dynamiccontent */
@@ -299,6 +307,35 @@ class transform_dynamic_content extends scheduled_task {
             $processcourse->create_resources_without_association($contentsoffolder);
             $manage_logs->update_proccesed_course(true, 'correctly_processed_needassociation');
         }
+    }
+
+    /**
+     * Imports edited versions stored under old resourceid folders in the
+     * editions directory into the resources just created on the first
+     * processing of a course. Runs after the resource links processing and
+     * only when the course has been processed for the first time.
+     *
+     * @param stdClass $course
+     * @return void
+     * @throws dml_exception
+     */
+    private function import_edition_versions(stdClass $course): void {
+        if (!$this->firstprocessing) {
+            return;
+        }
+        $migrator = new edition_versions_migrator($this->repository);
+        if (!$migrator->has_editions_for_course($course->shortname)) {
+            return;
+        }
+        mtrace(get_string('importededitions_start', 'local_educaaragon', $course->shortname));
+        $stats = $migrator->migrate_course($course);
+        mtrace(get_string('importededitions_result', 'local_educaaragon', [
+            'resources' => $stats['migratedresources'],
+            'versions' => $stats['migratedversions'],
+            'applied' => $stats['appliedversions'],
+            'skipped' => $stats['skipped'],
+            'errors' => $stats['errors'],
+        ]));
     }
 
     /**

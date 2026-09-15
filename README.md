@@ -178,7 +178,7 @@ Cuando la tarea **"Transformar contenidos dinámicos"** procesa un curso, realiz
 2.  Localiza la carpeta del curso en el repositorio según el ajuste *Carpeta de contenidos fuente*: `<raíz_repo>/<shortname_curso>` si está vacío, o `<raíz_repo>/<carpeta_fuente>/<shortname_curso>` si tiene valor. Si no la encuentra, marca el curso con el error `no_associated_folder` y pasa al siguiente.
 3.  Decide el modo de procesado:
     *   Si existe `editions/<shortname_curso>/` **y** el curso ya tiene recursos editables registrados en `local_educa_editables` → **modo reconocimiento** (paso 5).
-    *   En caso contrario → **procesado inicial** (pasos 3 y 4).
+    *   En caso contrario → **procesado inicial** (pasos 3, 4 y 7).
 
 **3. Procesado inicial: transformación**
 
@@ -190,7 +190,7 @@ Cuando la tarea **"Transformar contenidos dinámicos"** procesa un curso, realiz
 
 *Recurso editable:*
 
-1.  Crea un `mod_resource` HTML con el mismo nombre y en la misma sección que el SCORM original. En modo sin asociación se nombra `<orden> - <título>` (el título se extrae de la etiqueta `<title>` del `index.html`) y se coloca en una sección nueva llamada **"Materiales Editables"**.
+1.  Crea un `mod_resource` HTML con el mismo nombre y en la misma sección que el SCORM original. En modo sin asociación se nombra `<orden> - <título>` (el título se extrae de la etiqueta `<title>` del `index.html`) y se coloca en una sección nueva llamada **"Materiales Ministerio - Editables"**.
 2.  Copia todos los archivos de la carpeta del repositorio al recurso, con `index.html` como archivo principal.
 3.  Oculta el módulo original y sitúa el nuevo recurso justo después de él.
 
@@ -215,7 +215,15 @@ Tras transformar los contenidos, para cada recurso editable del curso:
 1.  Borra los resultados anteriores en `local_educa_resource_links`.
 2.  Analiza los archivos HTML de la versión `original` en busca de enlaces y registra su estado (activo, roto, corregido…) en dicha tabla.
 
-**7. Resultado del procesado**
+**7. Importación de versiones editadas (solo en el procesado inicial)**
+
+Solo si el curso se ha procesado por primera vez (pasos 3 y 4) y existe `editions/<shortname_curso>/` en el repositorio, la tarea migra automáticamente las versiones editadas que pudieran existir bajo **ids antiguos** hacia los ids de los recursos recién creados (misma lógica que el script CLI `migrate_edition_versions.php`, ver siguiente apartado). Se ejecuta **después** del análisis de enlaces, de modo que este solo analiza las versiones `original`.
+
+*   El emparejamiento entre ids antiguos y nuevos es posicional (ambas listas ordenadas numéricamente).
+*   Las versiones se **copian** (no se mueven) y **no se aplican**: los alumnos siguen viendo el contenido `original` hasta que un editor aplique una versión desde el panel de edición.
+*   Si no hay carpetas de ids antiguos en `editions/`, este paso no hace nada.
+
+**8. Resultado del procesado**
 
 El curso queda registrado en `local_educa_processedcourses` con uno de estos mensajes:
 
@@ -229,9 +237,11 @@ El curso queda registrado en `local_educa_processedcourses` con uno de estos men
 
 Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva la carpeta `editions/` de una instalación anterior, los recursos se vuelven a crear con **ids nuevos** y las versiones editadas quedan "huérfanas" bajo los ids antiguos. El script `cli/migrate_edition_versions.php` migra esas versiones a los ids nuevos para que vuelvan a aparecer en el panel de edición.
 
-**Flujo completo:**
+> **Nota:** la tarea de transformación ya ejecuta esta migración automáticamente al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*). El script CLI sigue siendo útil para comprobar el emparejamiento por adelantado (`--dry-run --verbose`), migrar de forma controlada curso a curso, o aplicar una versión migrada con `--apply-version`.
 
-1.  Procesar el curso con la tarea de transformación (ver *Ejecución manual de la tarea*). Se crean los recursos editables/imprimibles y sus carpetas `original` con los ids nuevos.
+**Flujo completo (ejecución manual):**
+
+1.  Procesar el curso con la tarea de transformación (ver *Ejecución manual de la tarea*). Se crean los recursos editables/imprimibles y sus carpetas `original` con los ids nuevos, y al final del procesado la tarea migra automáticamente las versiones existentes (paso 7). Los pasos siguientes solo son necesarios si se quiere comprobar el emparejamiento por adelantado o aplicar una versión de forma controlada.
 2.  Simular la migración y comprobar el emparejamiento:
 
     ```bash

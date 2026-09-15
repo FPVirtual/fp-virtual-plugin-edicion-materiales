@@ -17,6 +17,10 @@
 /**
  * Script CLI para migrar versiones editadas de resourceid antiguos a resourceid nuevos.
  *
+ * Comparte toda la lógica de migración con la clase
+ * local_educaaragon\edition_versions_migrator, que también ejecuta la tarea
+ * programada en el primer procesado de un curso.
+ *
  * @package    local_educaaragon
  * @author     3iPunt <https://www.tresipunt.com/>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,9 +31,9 @@ define('CLI_SCRIPT', true);
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/local/educaaragon/lib.php');
-require_once($CFG->dirroot . '/local/educaaragon/classes/manage_editable_resource.php');
+require_once($CFG->dirroot . '/local/educaaragon/classes/edition_versions_migrator.php');
 
-use local_educaaragon\manage_editable_resource;
+use local_educaaragon\edition_versions_migrator;
 
 // ============================================================================
 // PARSEO DE ARGUMENTOS
@@ -90,10 +94,7 @@ if (!is_dir($editionspath)) {
     cli_error('No existe la carpeta editions/ en el repositorio: ' . $editionspath);
 }
 
-$resourcemoduleid = $DB->get_field('modules', 'id', ['name' => 'resource']);
-if (!$resourcemoduleid) {
-    cli_error('No se encontro el modulo "resource" en la tabla modules.');
-}
+$migrator = new edition_versions_migrator($repository, $dryrun, $applyversion, $includeoriginal, $verbose);
 
 // ============================================================================
 // ESTADISTICAS
@@ -119,9 +120,8 @@ foreach ($coursedirs as $coursedir) {
     }
 
     $courseshortname = $coursedir;
-    $coursepath = $editionspath . $coursedir . '/';
 
-    if (!is_dir($coursepath)) {
+    if (!is_dir($editionspath . $coursedir . '/')) {
         continue;
     }
 
@@ -133,211 +133,33 @@ foreach ($coursedirs as $coursedir) {
     // Buscar curso en Moodle.
     $course = $DB->get_record('course', ['shortname' => $courseshortname]);
     if (!$course) {
-        cli_writeln('⚠️  Curso no encontrado en Moodle: ' . $courseshortname);
+        cli_writeln('Curso no encontrado en Moodle: ' . $courseshortname);
         $errors++;
         continue;
     }
-
-    $courseprocessed = false;
 
     if ($verbose) {
         cli_writeln('');
-        cli_writeln('📁 Curso: ' . $courseshortname . ' (id=' . $course->id . ')');
+        cli_writeln('Curso: ' . $courseshortname . ' (id=' . $course->id . ')');
     }
 
-    // Obtener resourceids actuales del curso (tipo editable).
-    $currenteditables = $DB->get_records('local_educa_editables', [
-        'courseid' => $course->id,
-        'type'     => 'editable',
-    ], 'resourceid ASC', 'resourceid');
-    $currentids = array_keys($currenteditables);
+    $stats = $migrator->migrate_course($course);
 
-    if (empty($currentids)) {
+    if ($stats['migratedresources'] === 0) {
         if ($verbose) {
-            cli_writeln('   ℹ️  No hay recursos editables actuales en Moodle');
+            cli_writeln('   Nada que migrar para este curso');
         }
+        $skippedresources += $stats['skipped'];
+        $errors += $stats['errors'];
         continue;
     }
 
-    // Escanear carpetas en editions/<curso>/.
-    $resourcedirs = scandir($coursepath);
-    if ($resourcedirs === false) {
-        cli_writeln('⚠️  No se pudo leer: ' . $coursepath);
-        $errors++;
-        continue;
-    }
-
-    $folderids = [];
-    foreach ($resourcedirs as $resourcedir) {
-        if ($resourcedir === '.' || $resourcedir === '..' || !is_dir($coursepath . $resourcedir)) {
-            continue;
-        }
-        $rid = (int)$resourcedir;
-        if ($rid > 0) {
-            $folderids[] = $rid;
-        }
-    }
-    sort($folderids, SORT_NUMERIC);
-
-    if (empty($folderids)) {
-        if ($verbose) {
-            cli_writeln('   ℹ️  No hay carpetas en editions para migrar');
-        }
-        continue;
-    }
-
-    if ($verbose) {
-        cli_writeln('   Actuales en Moodle: ' . implode(', ', $currentids));
-        cli_writeln('   Carpetas en editions: ' . implode(', ', $folderids));
-    }
-
-    // Separar carpetas que ya son IDs actuales (propios) vs antiguos.
-    $oldfolders = [];
-    $actualfolders = [];
-    foreach ($folderids as $fid) {
-        if (in_array($fid, $currentids, true)) {
-            $actualfolders[] = $fid;
-        } else {
-            $oldfolders[] = $fid;
-        }
-    }
-
-    // Targets: todos los actuales, en orden.
-    // Se empareja oldfolders[i] -> currentids[i] por posición.
-    $targetids = $currentids;
-
-    if ($verbose) {
-        cli_writeln('   Carpetas propias: ' . implode(', ', $actualfolders));
-        cli_writeln('   Antiguos en editions: ' . implode(', ', $oldfolders));
-        cli_writeln('   Targets sin carpeta: ' . implode(', ', $targetids));
-    }
-
-    $paircount = min(count($oldfolders), count($targetids));
-    if ($paircount === 0) {
-        if ($verbose) {
-            cli_writeln('   ℹ️  No hay antiguos para migrar o todos los actuales ya tienen carpeta');
-        }
-        continue;
-    }
-
-    for ($i = 0; $i < $paircount; $i++) {
-        $oldid = $oldfolders[$i];
-        $newid = $targetids[$i];
-
-        $oldpath = $coursepath . $oldid . '/';
-        $newpath = $coursepath . $newid . '/';
-
-        if ($verbose) {
-            cli_writeln('');
-            cli_writeln('   🔀 Emparejamiento ' . ($i + 1) . '/' . $paircount);
-            cli_writeln('      Antiguo: ' . $oldid . ' -> Nuevo: ' . $newid);
-        }
-
-        // Listar versiones del antiguo.
-        $versions = scandir($oldpath);
-        if ($versions === false) {
-            cli_writeln('      ⚠️  No se pudo leer: ' . $oldpath);
-            $errors++;
-            continue;
-        }
-
-        foreach ($versions as $versionname) {
-            if ($versionname === '.' || $versionname === '..' || !is_dir($oldpath . $versionname)) {
-                continue;
-            }
-
-            // Saltar original salvo que se fuerce.
-            if ($versionname === 'original' && !$includeoriginal) {
-                continue;
-            }
-
-            $src = $oldpath . $versionname . '/';
-            $dst = $newpath . $versionname . '/';
-
-            if (is_dir($dst)) {
-                if ($verbose) {
-                    cli_writeln('      ⚠️  Version ' . $versionname . ' ya existe en nuevo, saltando');
-                }
-                $skippedresources++;
-                continue;
-            }
-
-            if ($dryrun) {
-                cli_writeln('      [DRY-RUN] Copiaria ' . $versionname . ' de ' . $oldid . ' a ' . $newid);
-                $migratedversions++;
-                $courseprocessed = true;
-                continue;
-            }
-
-            try {
-                copy_folder($src, $dst);
-                if ($verbose) {
-                    cli_writeln('      ✅ Copiada version ' . $versionname);
-                }
-                $migratedversions++;
-                $courseprocessed = true;
-            } catch (Exception $e) {
-                cli_writeln('      ❌ Error copiando ' . $versionname . ': ' . $e->getMessage());
-                $errors++;
-                continue;
-            }
-        }
-
-        // Aplicar version si se solicito.
-        if ($applyversion !== '' && !$dryrun) {
-            $versiondir = $newpath . $applyversion . '/';
-            if (!is_dir($versiondir)) {
-                if ($verbose) {
-                    cli_writeln('      ⚠️  Version ' . $applyversion . ' no existe tras migrar');
-                }
-                continue;
-            }
-
-            $cm = $DB->get_record('course_modules', [
-                'instance' => $newid,
-                'module'   => $resourcemoduleid,
-                'course'   => $course->id,
-            ]);
-            if (!$cm) {
-                cli_writeln('      ⚠️  CM no encontrado para resourceid ' . $newid);
-                $errors++;
-                continue;
-            }
-
-            try {
-                $transaction = $DB->start_delegated_transaction();
-
-                $modinfo = get_fast_modinfo($course);
-                $cminfo  = $modinfo->get_cm($cm->id);
-
-                $manager = new manage_editable_resource($cminfo, $applyversion);
-                $manager->applyversion();
-                $manager->apllyversionprintable();
-
-                $transaction->allow_commit();
-
-                if ($verbose) {
-                    cli_writeln('      ✅ Aplicada version ' . $applyversion . ' a resourceid ' . $newid);
-                }
-                $appliedversions++;
-            } catch (Exception $e) {
-                if (isset($transaction)) {
-                    try {
-                        $transaction->rollback($e);
-                    } catch (Exception $rollbackex) {
-                        // Ignorar.
-                    }
-                }
-                cli_writeln('      ❌ Error aplicando version: ' . $e->getMessage());
-                $errors++;
-            }
-        }
-    }
-
-    if ($courseprocessed) {
-        $processedcourses++;
-        $migratedresources += $paircount;
-    }
+    $processedcourses++;
+    $migratedresources += $stats['migratedresources'];
+    $migratedversions  += $stats['migratedversions'];
+    $appliedversions   += $stats['appliedversions'];
+    $skippedresources  += $stats['skipped'];
+    $errors            += $stats['errors'];
 }
 
 // ============================================================================
@@ -357,7 +179,7 @@ cli_writeln('══════════════════════�
 
 if ($dryrun) {
     cli_writeln('');
-    cli_writeln('ℹ️  Se ejecuto en modo --dry-run. No se realizaron cambios.');
+    cli_writeln('Se ejecuto en modo --dry-run. No se realizaron cambios.');
     cli_writeln('   Revisa el emparejamiento y ejecuta sin --dry-run para aplicar.');
 }
 
