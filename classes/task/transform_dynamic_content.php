@@ -52,7 +52,6 @@ require_once($CFG->dirroot . '/local/educaaragon/lib.php');
 require_once($CFG->dirroot . '/lib/phpunit/classes/util.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/manage_logs.php');
 require_once($CFG->dirroot . '/lib/modinfolib.php');
-require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_external.php');
 require_once($CFG->dirroot . '/local/educaaragon/classes/edition_versions_migrator.php');
 
 
@@ -175,6 +174,9 @@ class transform_dynamic_content extends scheduled_task {
      * @throws moodle_exception
      */
     private function process_course_internal(stdClass $course): bool {
+        global $CFG;
+        // Loaded lazily: at file scope it would pull in externallib.php and break PHPUnit site installs.
+        require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_external.php');
         mtrace(PHP_EOL . get_string('processcourse', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
         try {
             $start = microtime(true);
