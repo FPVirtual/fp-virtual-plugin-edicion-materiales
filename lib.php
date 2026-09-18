@@ -123,7 +123,7 @@ function encode_html_entities(string $text): string {
  */
 function write_execution_log(string $prefix, array $lines): string {
     $repository = get_repository();
-    $logsdir = rtrim($repository->get_rootpath(), '/') . '/' . processcourse::EDITIONS_FOLDER . '/_logs/';
+    $logsdir = rtrim($repository->get_rootpath(), '/') . '/' . \local_educaaragon\processcourse::EDITIONS_FOLDER . '/_logs/';
     if (!is_dir($logsdir) && !mkdir($logsdir, 0775, true) && !is_dir($logsdir)) {
         throw new RuntimeException('No se pudo crear la carpeta de logs: ' . $logsdir);
     }
