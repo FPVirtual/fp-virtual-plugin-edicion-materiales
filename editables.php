@@ -50,7 +50,7 @@ $output = $PAGE->get_renderer('local_educaaragon');
 $PAGE->set_title(get_string('editables', 'local_educaaragon'));
 $PAGE->set_heading(get_string('editables', 'local_educaaragon'));
 $previewnode = $PAGE->navigation->add(
-    'Volver al curso',
+    'Volver al módulo',
     new moodle_url('/course/view.php?id=' . $courseid),
     navigation_node::TYPE_CONTAINER
 );

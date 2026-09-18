@@ -52,9 +52,15 @@ $scope = optional_param('scope', '', PARAM_ALPHA);
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $center = optional_param('center', '', PARAM_ALPHANUMEXT);
 $confirm = optional_param('confirm', 0, PARAM_INT);
+$applyversioncheck = optional_param('applyversioncheck', 0, PARAM_BOOL);
 $applyversion = optional_param('applyversion', '', PARAM_ALPHANUMEXT);
 $includeoriginal = optional_param('includeoriginal', 0, PARAM_BOOL);
 $dryrun = optional_param('dryrun', 0, PARAM_BOOL);
+
+// The version name only applies when its checkbox is marked.
+if (!$applyversioncheck) {
+    $applyversion = '';
+}
 
 $PAGE->set_url('/local/educaaragon/launchtask.php');
 $PAGE->set_pagelayout('admin');
@@ -177,7 +183,7 @@ if ($tasktype === 'generate') {
         } else if ($scope === 'single') {
             $runcourse = $DB->get_record('course', ['id' => $courseid], 'id, shortname');
             $scopedesc = $runcourse ? $runcourse->shortname . ' (id=' . $runcourse->id . ')' : $scope;
-            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'curso';
+            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'modulo';
         } else {
             $scopedesc = get_string('launchtask_all', 'local_educaaragon');
             $scopelabel = 'global';
@@ -260,7 +266,7 @@ if ($tasktype === 'generate') {
         } else if ($scope === 'single') {
             $runcourse = $DB->get_record('course', ['id' => $courseid], 'id, shortname');
             $scopedesc = $runcourse ? $runcourse->shortname . ' (id=' . $runcourse->id . ')' : $scope;
-            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'curso';
+            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'modulo';
         } else {
             $scopedesc = get_string('launchtask_all', 'local_educaaragon');
             $scopelabel = 'global';
@@ -289,7 +295,7 @@ if ($tasktype === 'generate') {
                     $coursestats = $migrator->migrate_course($migrationcourse);
                     $loglines = array_merge($loglines, $migrator->get_logs());
                     if ($coursestats['migratedresources'] === 0) {
-                        $log('Nada que migrar para este curso.');
+                        $log('Nada que migrar para este módulo.');
                     } else {
                         $processedcourses++;
                     }
@@ -430,7 +436,8 @@ if ($showform) {
     echo html_writer::tag('small', get_string('launchtask_center_desc', 'local_educaaragon'), ['class' => 'form-text text-muted d-block']);
     echo html_writer::end_div();
 
-    echo html_writer::start_div('form-group mt-2');
+    // Center code (only shown when the "center" scope is selected).
+    echo html_writer::start_div('form-group mt-2', ['id' => 'centergroup']);
     echo html_writer::tag('label', get_string('launchtask_centercode', 'local_educaaragon'), ['for' => 'center']);
     echo html_writer::empty_tag('input', [
         'type' => 'text',
@@ -443,6 +450,31 @@ if ($showform) {
     ]);
     echo html_writer::end_div();
 
+    // Module selector (only shown when the "single" scope is selected).
+    echo html_writer::start_div('mt-2', ['id' => 'coursegroup']);
+    echo html_writer::start_div('form-group');
+    echo html_writer::tag('label', get_string('launchtask_searchcourse', 'local_educaaragon'), ['for' => 'course_search']);
+    echo html_writer::empty_tag('input', [
+        'type' => 'text',
+        'class' => 'form-control',
+        'id' => 'course_search',
+        'placeholder' => get_string('launchtask_searchcourse', 'local_educaaragon'),
+        'autocomplete' => 'off',
+    ]);
+    echo html_writer::end_div();
+
+    echo html_writer::start_div('form-group');
+    echo html_writer::tag('label', get_string('launchtask_course', 'local_educaaragon'), ['for' => 'courseid']);
+    echo html_writer::start_tag('select', ['class' => 'form-control', 'name' => 'courseid', 'id' => 'courseid']);
+    echo html_writer::tag('option', get_string('launchtask_selectcourse', 'local_educaaragon'), ['value' => '']);
+    foreach ($courses as $course) {
+        $selected = ($courseid === (int)$course->id) ? ['selected' => 'selected'] : [];
+        echo html_writer::tag('option', s($course->fullname . ' (' . $course->shortname . ')'), ['value' => $course->id] + $selected);
+    }
+    echo html_writer::end_tag('select');
+    echo html_writer::end_div();
+    echo html_writer::end_div();
+
     echo html_writer::end_tag('fieldset');
 
     // Migration options (only shown when the import task is selected).
@@ -450,8 +482,22 @@ if ($showform) {
     echo html_writer::tag('legend', get_string('launchtask_migrationoptions', 'local_educaaragon'));
     echo $OUTPUT->notification(get_string('launchtask_migrate_requirement', 'local_educaaragon'), 'warning');
 
-    echo html_writer::start_div('form-group');
-    echo html_writer::tag('label', get_string('launchtask_applyversion', 'local_educaaragon'), ['for' => 'applyversion']);
+    echo html_writer::start_div('form-check');
+    echo html_writer::empty_tag('input', [
+        'class' => 'form-check-input',
+        'type' => 'checkbox',
+        'name' => 'applyversioncheck',
+        'id' => 'applyversioncheck',
+        'value' => '1',
+        'checked' => $applyversioncheck ? 'checked' : null,
+    ]);
+    echo html_writer::tag('label', get_string('launchtask_applyversion', 'local_educaaragon'), ['class' => 'form-check-label', 'for' => 'applyversioncheck']);
+    echo html_writer::tag('small', get_string('launchtask_applyversion_desc', 'local_educaaragon'), ['class' => 'form-text text-muted d-block']);
+    echo html_writer::end_div();
+
+    // Version name (only shown when the apply-version option is checked).
+    echo html_writer::start_div('form-group mt-2', ['id' => 'applyversiongroup']);
+    echo html_writer::tag('label', get_string('launchtask_applyversion_name', 'local_educaaragon'), ['for' => 'applyversion']);
     echo html_writer::empty_tag('input', [
         'type' => 'text',
         'class' => 'form-control',
@@ -461,7 +507,7 @@ if ($showform) {
         'placeholder' => 'v1_2025-2026',
         'autocomplete' => 'off',
     ]);
-    echo html_writer::tag('small', get_string('launchtask_applyversion_desc', 'local_educaaragon'), ['class' => 'form-text text-muted']);
+    echo html_writer::tag('small', get_string('launchtask_applyversion_name_desc', 'local_educaaragon'), ['class' => 'form-text text-muted']);
     echo html_writer::end_div();
 
     echo html_writer::start_div('form-check');
@@ -490,29 +536,18 @@ if ($showform) {
 
     echo html_writer::end_tag('fieldset');
 
-    echo html_writer::start_div('form-group');
-    echo html_writer::tag('label', get_string('launchtask_searchcourse', 'local_educaaragon'), ['for' => 'course_search']);
-    echo html_writer::empty_tag('input', [
-        'type' => 'text',
-        'class' => 'form-control',
-        'id' => 'course_search',
-        'placeholder' => get_string('launchtask_searchcourse', 'local_educaaragon'),
-        'autocomplete' => 'off',
-    ]);
-    echo html_writer::end_div();
-
-    echo html_writer::start_div('form-group');
-    echo html_writer::tag('label', get_string('launchtask_course', 'local_educaaragon'), ['for' => 'courseid']);
-    echo html_writer::start_tag('select', ['class' => 'form-control', 'name' => 'courseid', 'id' => 'courseid']);
-    echo html_writer::tag('option', get_string('launchtask_selectcourse', 'local_educaaragon'), ['value' => '']);
-    foreach ($courses as $course) {
-        $selected = ($courseid === (int)$course->id) ? ['selected' => 'selected'] : [];
-        echo html_writer::tag('option', s($course->fullname . ' (' . $course->shortname . ')'), ['value' => $course->id] + $selected);
-    }
-    echo html_writer::end_tag('select');
-    echo html_writer::end_div();
-
     echo html_writer::script("(function() {
+        function checkedValue(name) {
+            var el = document.querySelector('input[name=\"' + name + '\"]:checked');
+            return el ? el.value : '';
+        }
+        var migrateOptions = document.getElementById('migrateoptions');
+        var centerGroup = document.getElementById('centergroup');
+        var courseGroup = document.getElementById('coursegroup');
+        var applyversionCheck = document.getElementById('applyversioncheck');
+        var applyversionGroup = document.getElementById('applyversiongroup');
+
+        // Module search filter.
         var searchInput = document.getElementById('course_search');
         var courseSelect = document.getElementById('courseid');
         var options = Array.from(courseSelect.options);
@@ -526,19 +561,20 @@ if ($showform) {
                 option.hidden = term.length > 0 && option.text.toLowerCase().indexOf(term) === -1;
             });
         });
-    })();");
 
-    echo html_writer::script("(function() {
-        var migrateOptions = document.getElementById('migrateoptions');
-        var taskInputs = document.querySelectorAll('input[name=\"task\"]');
-        function toggleMigrateOptions() {
-            var selected = document.querySelector('input[name=\"task\"]:checked');
-            migrateOptions.style.display = (selected && selected.value === 'migrate') ? '' : 'none';
+        function toggleForm() {
+            var task = checkedValue('task');
+            var scope = checkedValue('scope');
+            migrateOptions.style.display = (task === 'migrate') ? '' : 'none';
+            centerGroup.style.display = (scope === 'center') ? '' : 'none';
+            courseGroup.style.display = (scope === 'single') ? '' : 'none';
+            applyversionGroup.style.display = applyversionCheck.checked ? '' : 'none';
         }
-        taskInputs.forEach(function(input) {
-            input.addEventListener('change', toggleMigrateOptions);
+        document.querySelectorAll('input[name=\"task\"], input[name=\"scope\"]').forEach(function(input) {
+            input.addEventListener('change', toggleForm);
         });
-        toggleMigrateOptions();
+        applyversionCheck.addEventListener('change', toggleForm);
+        toggleForm();
     })();");
 
     echo html_writer::start_div('mt-3');

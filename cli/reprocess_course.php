@@ -63,12 +63,12 @@ $course = false;
 if (isset($options['shortname'])) {
     $course = $DB->get_record('course', ['shortname' => $options['shortname']]);
     if (!$course) {
-        cli_error('Course not found: ' . $options['shortname']);
+        cli_error('Module not found: ' . $options['shortname']);
     }
 } else if (isset($options['courseid'])) {
     $course = $DB->get_record('course', ['id' => (int)$options['courseid']]);
     if (!$course) {
-        cli_error('Course not found with id: ' . $options['courseid']);
+        cli_error('Module not found with id: ' . $options['courseid']);
     }
 }
 
@@ -76,12 +76,12 @@ if ($course === false) {
     cli_error('A --shortname or --courseid must be provided.');
 }
 
-cli_writeln('Reprocessing course ' . $course->shortname . ' (id=' . $course->id . ')...');
+cli_writeln('Reprocessing module ' . $course->shortname . ' (id=' . $course->id . ')...');
 
 try {
     $result = reprocessing_external::reprocessing_course($course->id);
     if ($result['response']) {
-        cli_writeln('Course marked for reprocessing successfully.');
+        cli_writeln('Module marked for reprocessing successfully.');
         cli_writeln('');
         cli_writeln('Run the scheduled task to regenerate the resources:');
         cli_writeln('  php admin/cli/scheduled_task.php --execute=\'\\local_educaaragon\\task\\transform_dynamic_content\'');

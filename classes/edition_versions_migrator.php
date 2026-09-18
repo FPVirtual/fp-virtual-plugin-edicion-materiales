@@ -139,7 +139,7 @@ class edition_versions_migrator {
             return $stats;
         }
         $this->log('');
-        $this->log('=== Curso: ' . $course->shortname . ' (id=' . $course->id . ') ===');
+        $this->log('=== Módulo: ' . $course->shortname . ' (id=' . $course->id . ') ===');
 
         // Current editable resourceids of the course, in ascending order.
         $currenteditables = $DB->get_records('local_educa_editables', [

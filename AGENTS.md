@@ -18,7 +18,7 @@ El plugin se instala como cualquier otro plugin Local de Moodle, en la ruta `/lo
 - **Backend:** PHP 7.4+ siguiendo la arquitectura estándar de Moodle.
 - **Frontend:** JavaScript AMD (RequireJS), jQuery, Mustache (templates del core de Moodle).
 - **Base de datos:** Tablas propias gestionadas mediante XMLDB y la API `persistent` de Moodle.
-- **Repositorio de archivos:** Requiere un repositorio de tipo **Sistema de archivos (filesystem)** configurado en Moodle. Los contenidos HTML de origen de los cursos se leen desde una carpeta configurable dentro del repositorio (por defecto la raíz). Las versiones editadas se guardan en `moodledata/repository/<nombre_repo>/editions/<shortname_curso>/<resourceid>/<version>/`.
+- **Repositorio de archivos:** Requiere un repositorio de tipo **Sistema de archivos (filesystem)** configurado en Moodle. Los contenidos HTML de origen de los módulos se leen desde una carpeta configurable dentro del repositorio (por defecto la raíz). Las versiones editadas se guardan en `moodledata/repository/<nombre_repo>/editions/<shortname_módulo>/<resourceid>/<version>/`.
 - **Procesamiento periódico:** Tarea programada de Moodle (`local_educaaragon\task\transform_dynamic_content`) que se ejecuta por defecto todos los días a las 03:00 h.
 - **Eventos:** Observadores del core (`course_module_deleted`, `course_deleted`) para limpieza de datos.
 
@@ -35,10 +35,10 @@ local/educaaragon/
 ├── version.php              # Versión del plugin y dependencias
 ├── lib.php                  # Funciones de ayuda globales (remove_accents, copy_folder, write_execution_log, etc.)
 ├── settings.php             # Páginas de administración y configuración
-├── editables.php            # Listado de recursos editables de un curso
+├── editables.php            # Listado de recursos editables de un módulo
 ├── editresource.php         # Editor de contenido HTML de una versión
 ├── editresourcetoc.php      # Editor de la tabla de contenidos (TOC)
-├── processedcourses.php     # Panel de cursos procesados
+├── processedcourses.php     # Panel de módulos procesados
 ├── launchtask.php           # Ejecución manual de tareas (generación de materiales + importación de versiones, con log)
 ├── registereditions.php     # Registro de ediciones realizadas
 ├── resourcelinks.php        # Informe de enlaces de una versión
@@ -60,7 +60,7 @@ local/educaaragon/
 │   ├── educa_processedcourses.php     # Clase persistente (tabla local_educa_processedcourses)
 │   ├── educa_resource_links.php       # Clase persistente (tabla local_educa_resource_links)
 │   ├── editables_table.php            # Tabla Moodle para listado de editables
-│   ├── processedcourses_table.php     # Tabla Moodle para cursos procesados
+│   ├── processedcourses_table.php     # Tabla Moodle para módulos procesados
 │   ├── registereditions_table.php     # Tabla Moodle para registro de ediciones
 │   ├── resourcelinks_table.php        # Tabla Moodle para informe de enlaces
 │   ├── task/
@@ -85,7 +85,7 @@ local/educaaragon/
 ├── amd/src/                 # Módulos JavaScript AMD (fuente)
 │   ├── editresource.js      # UI de edición de contenido y versiones
 │   ├── edittoc.js           # UI de edición de TOC (drag & drop)
-│   └── processedcourses_page.js  # UI del panel de cursos procesados
+│   └── processedcourses_page.js  # UI del panel de módulos procesados
 ├── amd/build/               # Módulos minificados (compilados por Moodle)
 ├── templates/               # Plantillas Mustache
 │   ├── editables.mustache
@@ -110,8 +110,8 @@ El plugin define **4 tablas** en `db/install.xml`:
 
 | Tabla | Propósito |
 |-------|-----------|
-| `local_educa_processedcourses` | Registro de cursos procesados por la tarea programada. Campos: `courseid`, `processed` (bool), `message`. |
-| `local_educa_editables` | Recursos editables y versiones imprimibles generados por curso. Campos: `courseid`, `resourceid`, `type` (`editable` / `printable`), `relatedcmid`, `version`. |
+| `local_educa_processedcourses` | Registro de módulos procesados por la tarea programada. Campos: `courseid`, `processed` (bool), `message`. |
+| `local_educa_editables` | Recursos editables y versiones imprimibles generados por módulo. Campos: `courseid`, `resourceid`, `type` (`editable` / `printable`), `relatedcmid`, `version`. |
 | `local_educa_edited` | Auditoría de todas las acciones realizadas sobre los recursos (crear versión, guardar cambios, aplicar versión, etc.). |
 | `local_educa_resource_links` | Resultados del análisis de enlaces: estado (`link_active`, `link_broken`, `link_fixed`, …), URL, archivo donde se encontró, etc. |
 
@@ -122,16 +122,16 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 ## 5. Flujo principal de funcionamiento
 
 ### 5.1 Transformación inicial (tarea programada)
-1. La tarea `transform_dynamic_content` recorre los cursos de la categoría configurada (o todos).
-2. Por cada curso, busca en el repositorio filesystem la carpeta configurada como fuente (`sourcefolder`). Si el ajuste está vacío, busca directamente `<shortname_curso>/`; si tiene un valor, busca `<valor>/<shortname_curso>/`.
-3. Si existe `editions/<shortname_curso>/` **y** el curso tiene registros en `local_educa_editables`, el curso ya fue procesado antes: la tarea solo reconoce las versiones existentes y asegura que cada recurso editable tenga su carpeta `original`.
-4. Si no existe `editions/<shortname_curso>/`, es el primer procesado. Identifica los módulos SCORM e IMSCP del curso (excepto sección 0) y crea, para cada contenido, dos recursos de tipo `mod_resource`:
-   - **Editable:** recurso HTML estándar con todos los archivos de `recursos-editables/<shortname_curso>/<orden>/`.
+1. La tarea `transform_dynamic_content` recorre los módulos de la categoría configurada (o todos).
+2. Por cada módulo, busca en el repositorio filesystem la carpeta configurada como fuente (`sourcefolder`). Si el ajuste está vacío, busca directamente `<shortname_módulo>/`; si tiene un valor, busca `<valor>/<shortname_módulo>/`.
+3. Si existe `editions/<shortname_módulo>/` **y** el módulo tiene registros en `local_educa_editables`, el módulo ya fue procesado antes: la tarea solo reconoce las versiones existentes y asegura que cada recurso editable tenga su carpeta `original`.
+4. Si no existe `editions/<shortname_módulo>/`, es el primer procesado. Identifica los módulos SCORM e IMSCP del módulo (excepto sección 0) y crea, para cada contenido, dos recursos de tipo `mod_resource`:
+   - **Editable:** recurso HTML estándar con todos los archivos de `recursos-editables/<shortname_módulo>/<orden>/`.
    - **Imprimible:** recurso HTML donde se unifican todos los archivos `.html` en un único `index.html`, eliminando navegación y añadiendo CSS de impresión.
-5. Oculta los módulos SCORM/IMSCP originales, registra todo en `local_educa_editables` y crea las carpetas `editions/<shortname_curso>/<resourceid>/original/` con el contenido de cada recurso editable.
+5. Oculta los módulos SCORM/IMSCP originales, registra todo en `local_educa_editables` y crea las carpetas `editions/<shortname_módulo>/<resourceid>/original/` con el contenido de cada recurso editable.
 
 ### 5.2 Edición de contenidos
-1. El usuario accede a la página `editables.php` desde el menú del curso (solo si tiene la capacidad `local/educaaragon:editresources`).
+1. El usuario accede a la página `editables.php` desde el menú del módulo (solo si tiene la capacidad `local/educaaragon:editresources`).
 2. Desde `editresource.php` puede:
    - Crear nuevas versiones a partir de otra existente.
    - Editar el HTML de cualquier archivo de la versión mediante el editor Atto.
@@ -142,9 +142,9 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 
 ### 5.3 Estructura del repositorio filesystem
 - **Contenido fuente** (solo lectura para la tarea de transformación):
-  Se indica en el ajuste `Carpeta de contenidos fuente`. Puede ser la raíz del repositorio (`<shortname_curso>/<orden>/`) o una subcarpeta (`recursos-editables/<shortname_curso>/<orden>/`, etc.). Cada carpeta `<orden>` (`01`, `02`…) debe contener todos los archivos del recurso, incluyendo un `index.html` como disparador.
+  Se indica en el ajuste `Carpeta de contenidos fuente`. Puede ser la raíz del repositorio (`<shortname_módulo>/<orden>/`) o una subcarpeta (`recursos-editables/<shortname_módulo>/<orden>/`, etc.). Cada carpeta `<orden>` (`01`, `02`…) debe contener todos los archivos del recurso, incluyendo un `index.html` como disparador.
 - **Versiones editadas**:
-  `editions/<shortname_curso>/<resourceid>/`
+  `editions/<shortname_módulo>/<resourceid>/`
   Dentro de esa carpeta se crea la subcarpeta `original` (copia del contenido del módulo resource) y las carpetas de cada versión editada.
 - La versión `original` no se puede editar ni eliminar.
 
@@ -177,10 +177,10 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
   1. Crear un repositorio de tipo *Sistema de archivos* en Moodle.
   2. En `Administración del sitio → Cursos → Educa Aragón → Ajustes generales`:
      - Seleccionar el repositorio de contenidos.
-     - Elegir si aplica a todos los cursos o a una categoría específica.
-     - Activar la tarea programada cuando se desee que el cron procese los cursos automáticamente.
+     - Elegir si aplica a todos los módulos o a una categoría específica.
+     - Activar la tarea programada cuando se desee que el cron procese los módulos automáticamente.
   3. Configurar la tarea programada en `Administración del sitio → Servidor → Tareas → Tareas Programadas`.
-  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas`, que permite lanzar la generación de materiales o la importación de versiones para todos los cursos, para un curso concreto o para un centro completo (generando log en `editions/_logs/`).
+  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas`, que permite lanzar la generación de materiales o la importación de versiones para todos los módulos, para un módulo concreto o para un centro completo (generando log en `editions/_logs/`).
 
 ---
 
@@ -189,10 +189,10 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
 **No se incluyen tests automatizados en el repositorio.** No hay suites de PHPUnit ni escenarios de Behat. El plugin se valida manualmente mediante:
 
 1. Ejecución de la tarea programada y revisión de los logs del cron.
-2. Verificación de la creación correcta de recursos editables e imprimibles en un curso de prueba.
+2. Verificación de la creación correcta de recursos editables e imprimibles en un módulo de prueba.
 3. Pruebas de creación, edición, guardado y aplicación de versiones.
 4. Comprobación del informe de enlaces tras el procesado de una versión.
-5. Validación de que los observadores de eventos limpian correctamente las tablas y el filesystem al eliminar cursos o módulos.
+5. Validación de que los observadores de eventos limpian correctamente las tablas y el filesystem al eliminar módulos o módulos.
 
 ---
 
@@ -200,8 +200,8 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
 
 - **Capacidades:**
   - `local/educaaragon:manageall` — Administración global del plugin (contexto sistema).
-  - `local/educaaragon:editresources` — Edición de recursos dentro de un curso (contexto curso).
-- **Validación de parámetros:** Los servicios externos (`external_api`) definen explícitamente los parámetros de entrada (`PARAM_INT`, `PARAM_RAW`, etc.) y validan el contexto del curso.
+  - `local/educaaragon:editresources` — Edición de recursos dentro de un módulo (contexto curso de Moodle).
+- **Validación de parámetros:** Los servicios externos (`external_api`) definen explícitamente los parámetros de entrada (`PARAM_INT`, `PARAM_RAW`, etc.) y validan el contexto del módulo.
 - **Capacidades en servicios AJAX:** Cada función externa invoca `require_capability()` tras `validate_context()`.
 - **Limpieza de salida:** Las URLs y nombres de archivo se sanitizan con funciones propias (`clean_string`, `clean_url`).
 - **Filesystem:** El plugin lee y escribe directamente en el disco a través del repositorio filesystem. Presta atención a los permisos de `moodledata/repository/`.

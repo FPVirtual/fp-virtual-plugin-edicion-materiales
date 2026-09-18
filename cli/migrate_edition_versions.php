@@ -19,7 +19,7 @@
  *
  * Comparte toda la lógica de migración con la clase
  * local_educaaragon\edition_versions_migrator, que también ejecuta la tarea
- * programada en el primer procesado de un curso.
+ * programada en el primer procesado de un módulo.
  *
  * Permite migrar un centro completo (todas las carpetas cuyo primer token
  * del shortname coincide) y genera un documento de log con todos los cambios
@@ -72,7 +72,7 @@ if (isset($options['help'])) {
     echo "Uso:\n";
     echo "  php local/educaaragon/cli/migrate_edition_versions.php [opciones]\n\n";
     echo "Opciones:\n";
-    echo "  --course=SHORTNAME      Filtrar por shortname de curso (puede repetirse).\n";
+    echo "  --course=SHORTNAME      Filtrar por shortname de módulo (puede repetirse).\n";
     echo "  --center=CODIGO         Migrar todas las carpetas cuyo primer token del\n";
     echo "                          shortname coincide (ej. 50020125 migrara\n";
     echo "                          50020125-IFC303-16805, 50020125-IFC303-16809, ...).\n";
@@ -114,9 +114,9 @@ $log = function(string $message) use (&$loglines): void {
     $loglines[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
 };
 
-$filtersdesc = $centerfilter !== '' ? 'centro=' . $centerfilter : 'todos los cursos';
+$filtersdesc = $centerfilter !== '' ? 'centro=' . $centerfilter : 'todos los módulos';
 if (!empty($coursesfilter)) {
-    $filtersdesc .= ' | cursos=' . implode(',', $coursesfilter);
+    $filtersdesc .= ' | módulos=' . implode(',', $coursesfilter);
 }
 $optionsdesc = trim(($dryrun ? 'dry-run ' : '')
     . ($applyversion !== '' ? 'apply-version=' . $applyversion . ' ' : '')
@@ -170,18 +170,18 @@ foreach ($coursedirs as $coursedir) {
         continue;
     }
 
-    // Buscar curso en Moodle.
+    // Buscar módulo en Moodle.
     $course = $DB->get_record('course', ['shortname' => $courseshortname]);
     if (!$course) {
-        cli_writeln('Curso no encontrado en Moodle: ' . $courseshortname);
-        $log('ERROR: Curso no encontrado en Moodle: ' . $courseshortname);
+        cli_writeln('Módulo no encontrado en Moodle: ' . $courseshortname);
+        $log('ERROR: Módulo no encontrado en Moodle: ' . $courseshortname);
         $errors++;
         continue;
     }
 
     if ($verbose) {
         cli_writeln('');
-        cli_writeln('Curso: ' . $courseshortname . ' (id=' . $course->id . ')');
+        cli_writeln('Módulo: ' . $courseshortname . ' (id=' . $course->id . ')');
     }
 
     $migrator = new edition_versions_migrator($repository, $dryrun, $applyversion, $includeoriginal, $verbose);
@@ -190,9 +190,9 @@ foreach ($coursedirs as $coursedir) {
 
     if ($stats['migratedresources'] === 0) {
         if ($verbose) {
-            cli_writeln('   Nada que migrar para este curso');
+            cli_writeln('   Nada que migrar para este módulo');
         }
-        $log('Nada que migrar para este curso.');
+        $log('Nada que migrar para este módulo.');
         $skippedresources += $stats['skipped'];
         $errors += $stats['errors'];
         continue;
@@ -213,7 +213,7 @@ cli_writeln('');
 cli_writeln('═══════════════════════════════════════════════');
 cli_writeln(' RESUMEN DE MIGRACION');
 cli_writeln('═══════════════════════════════════════════════');
-cli_writeln('Cursos procesados:      ' . $processedcourses);
+cli_writeln('Módulos procesados:      ' . $processedcourses);
 cli_writeln('Recursos emparejados:   ' . $migratedresources);
 cli_writeln('Versiones copiadas:     ' . $migratedversions);
 cli_writeln('Versiones aplicadas:    ' . $appliedversions);
@@ -225,7 +225,7 @@ $log('');
 $log('============================================================');
 $log(' RESUMEN DE MIGRACION');
 $log('============================================================');
-$log('Cursos procesados:    ' . $processedcourses);
+$log('Módulos procesados:    ' . $processedcourses);
 $log('Recursos emparejados: ' . $migratedresources);
 $log('Versiones copiadas:   ' . $migratedversions);
 $log('Versiones aplicadas:  ' . $appliedversions);

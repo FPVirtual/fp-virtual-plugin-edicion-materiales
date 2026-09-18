@@ -64,7 +64,7 @@ if (isset($options['help'])) {
     echo "Uso:\n";
     echo "  php local/educaaragon/cli/restore_versions.php [opciones]\n\n";
     echo "Opciones:\n";
-    echo "  --course=SHORTNAME    Filtrar por shortname de curso (puede repetirse).\n";
+    echo "  --course=SHORTNAME    Filtrar por shortname de módulo (puede repetirse).\n";
     echo "  --category=ID         Filtrar por ID de categoría de Moodle.\n";
     echo "  --dry-run             Muestra qué haría sin aplicar cambios.\n";
     echo "  --verbose             Muestra detalle de cada recurso procesado.\n";
@@ -146,10 +146,10 @@ foreach ($coursedirs as $coursedir) {
         continue;
     }
 
-    // Buscar curso en Moodle.
+    // Buscar módulo en Moodle.
     $course = $DB->get_record('course', ['shortname' => $courseshortname]);
     if (!$course) {
-        cli_writeln('⚠️  Curso no encontrado en Moodle: ' . $courseshortname);
+        cli_writeln('⚠️  Módulo no encontrado en Moodle: ' . $courseshortname);
         $errors++;
         continue;
     }
@@ -162,10 +162,10 @@ foreach ($coursedirs as $coursedir) {
     $courseprocessed = false;
 
     if ($verbose) {
-        cli_writeln('📁 Procesando curso: ' . $courseshortname . ' (id=' . $course->id . ')');
+        cli_writeln('📁 Procesando módulo: ' . $courseshortname . ' (id=' . $course->id . ')');
     }
 
-    // Escanear resourceids dentro del curso.
+    // Escanear resourceids dentro del módulo.
     $resourcedirs = scandir($coursepath);
     if ($resourcedirs === false) {
         cli_writeln('⚠️  No se pudo leer: ' . $coursepath);
@@ -204,7 +204,7 @@ foreach ($coursedirs as $coursedir) {
 
         if (!$cm) {
             cli_writeln('   ⚠️  CM no encontrado para resourceid ' . $resourceid .
-                        ' en curso ' . $courseshortname);
+                        ' en módulo ' . $courseshortname);
             $errors++;
             continue;
         }
@@ -261,7 +261,7 @@ cli_writeln('');
 cli_writeln('═══════════════════════════════════════════════');
 cli_writeln(' RESUMEN');
 cli_writeln('═══════════════════════════════════════════════');
-cli_writeln('Cursos procesados:    ' . $processedcourses);
+cli_writeln('Módulos procesados:    ' . $processedcourses);
 cli_writeln('Recursos aplicados:   ' . $processedresources);
 cli_writeln('Recursos omitidos:    ' . $skippedresources);
 cli_writeln('Errores:              ' . $errors);

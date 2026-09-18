@@ -35,7 +35,7 @@ Para que el plugin funcione, es necesario que se cree un repositorio dentro de M
 
 Los pasos a seguir son los siguientes:
 
-*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir los contenidos fuente de los cursos y, opcionalmente desde el inicio, la carpeta `editions` (la creará y gestionará el plugin para las versiones editadas). La ubicación exacta de los contenidos fuente se configura en el ajuste **Carpeta de contenidos fuente**.
+*   Crear una carpeta en **“moodledata/repository”** con el nombre del repositorio. Dentro de ella deben existir los contenidos fuente de los módulos y, opcionalmente desde el inicio, la carpeta `editions` (la creará y gestionará el plugin para las versiones editadas). La ubicación exacta de los contenidos fuente se configura en el ajuste **Carpeta de contenidos fuente**.
     
 *   Dentro de la administración de Moodle, ir a **Administración del sitio→ Extensiones → Repositorios → Gestionar Repositorios → Sistema de archivos**, debe estar marcado como “Activado y visible”
     
@@ -51,17 +51,17 @@ Dentro del repositorio que acabamos de crear, los contenidos se organizan en dos
 
 Aquí se colocan los contenidos originales que utilizará la tarea de transformación para dar de alta los recursos editables. La ubicación de esta carpeta se indica en el ajuste **Carpeta de contenidos fuente**:
 
-*   Si se deja **vacío**, la tarea buscará las carpetas de los cursos directamente en la raíz del repositorio:
+*   Si se deja **vacío**, la tarea buscará las carpetas de los módulos directamente en la raíz del repositorio:
     ```
-    <raíz_repo>/<shortname_curso>/<orden>/index.html
+    <raíz_repo>/<shortname_módulo>/<orden>/index.html
     ```
 
 *   Si se escribe un nombre de carpeta (por ejemplo, `recursos-editables`), la tarea buscará dentro de esa subcarpeta:
     ```
-    <raíz_repo>/recursos-editables/<shortname_curso>/<orden>/index.html
+    <raíz_repo>/recursos-editables/<shortname_módulo>/<orden>/index.html
     ```
 
-En cualquier caso, dentro de la carpeta de cada curso debe existir **una subcarpeta por cada recurso que se vaya a generar**, recomendable que esté nombrada con `01`, `02`, `03`… según el orden de aparición del recurso en el curso, para facilitar la ordenación.
+En cualquier caso, dentro de la carpeta de cada módulo debe existir **una subcarpeta por cada recurso que se vaya a generar**, recomendable que esté nombrada con `01`, `02`, `03`… según el orden de aparición del recurso en el módulo, para facilitar la ordenación.
 
 **Dentro de cada carpeta de un recurso deberán estar todos los ficheros necesarios para que el contenido funcione correctamente, así como un fichero `index.html`** que será el que sirva de disparador del contenido. Si este fichero no existe, el recurso no se generará.
 
@@ -70,7 +70,7 @@ En cualquier caso, dentro de la carpeta de cada curso debe existir **una subcarp
 Esta carpeta la crea y gestiona el propio plugin. Su estructura es:
 
 ```
-editions/<shortname_curso>/<resourceid>/
+editions/<shortname_módulo>/<resourceid>/
 ```
 
 Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
@@ -78,32 +78,32 @@ Dentro de cada `<resourceid>` se encuentran las versiones del recurso:
 *   `original/`: copia del contenido del recurso editable tal como se generó en la primera transformación. No debe editarse ni eliminarse.
 *   `v1_2025_2026/`, `v2_.../`, etc.: versiones creadas posteriormente desde el panel de edición.
 
-Si ya existe `editions/<shortname_curso>/` y el curso ya tiene recursos editables registrados por el plugin, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes. Si no hay registros de recursos editables, se tratará como un procesado inicial.
+Si ya existe `editions/<shortname_módulo>/` y el módulo ya tiene recursos editables registrados por el plugin, la tarea de transformación no volverá a crear los recursos desde el contenido fuente, sino que reconocerá las versiones ya existentes. Si no hay registros de recursos editables, se tratará como un procesado inicial.
 
 ### Carpeta temporal de procesado (`fileprocessing/`)
 
-La generación de los recursos imprimibles utiliza como ruta de trabajo intermedia la carpeta `local/educaaragon/fileprocessing/` dentro de la instalación de Moodle. Debe tener permisos de escritura para el usuario del servidor web (el plugin la crea automáticamente si no existe al procesar un curso).
+La generación de los recursos imprimibles utiliza como ruta de trabajo intermedia la carpeta `local/educaaragon/fileprocessing/` dentro de la instalación de Moodle. Debe tener permisos de escritura para el usuario del servidor web (el plugin la crea automáticamente si no existe al procesar un módulo).
 
 > **En entornos contenerizados (Docker/Podman):** esta carpeta vive dentro del contenedor y normalmente **no está montada en el host**, por lo que no la verás desde el sistema de archivos del servidor. Si necesitas inspeccionarla, hazlo desde dentro del contenedor.
 
 
 ## Configuración
 
-Una vez instalado el plugin, para su configuración tendremos que ir a **Administración del sitio → Cursos → Educa Aragón → Ajustes generales**
+Una vez instalado el plugin, para su configuración tendremos que ir a **Administración del sitio → Módulos → Educa Aragón → Ajustes generales**
 
 Aquí podremos activar o desactivar el procesamiento de tareas.
 
 Al activarla, se nos mostrarán distintas opciones:
 
-*   **Activar tarea programada para transformar recursos:** activa o desactiva el procesamiento de cursos por la tarea programada (aunque la tarea se ejecute, si esta opción está desmarcada no se procesará ningún curso).
+*   **Activar tarea programada para transformar recursos:** activa o desactiva el procesamiento de módulos por la tarea programada (aunque la tarea se ejecute, si esta opción está desmarcada no se procesará ningún módulo).
     
 *   **Repositorio de contenidos:** selección del repositorio donde están contenidos todos los recursos exportados.
     
-*   **Carpeta de contenidos fuente:** nombre de la carpeta dentro del repositorio donde están los contenidos originales de los cursos. Déjela vacía si las carpetas de los cursos están directamente en la raíz del repositorio. Indique `recursos-editables` (o el nombre correspondiente) si los contenidos están en una subcarpeta. Las versiones editadas siempre se guardan en `editions/`.
+*   **Carpeta de contenidos fuente:** nombre de la carpeta dentro del repositorio donde están los contenidos originales de los módulos. Déjela vacía si las carpetas de los módulos están directamente en la raíz del repositorio. Indique `recursos-editables` (o el nombre correspondiente) si los contenidos están en una subcarpeta. Las versiones editadas siempre se guardan en `editions/`.
     
-*   **Aplicar a todos los cursos:** si se marca esta casilla, todos los cursos de la plataforma serán procesados. Si se desmarca, aparecerá el selector de categorías de curso.
+*   **Aplicar a todos los módulos:** si se marca esta casilla, todos los módulos de la plataforma serán procesados. Si se desmarca, aparecerá el selector de categorías de módulo.
     
-*   **Categoría:** el proceso de cursos sólo se hará sobre los cursos que pertenezcan a esta categoría (incluyendo los cursos de las subcategorías)
+*   **Categoría:** el proceso de módulos sólo se hará sobre los módulos que pertenezcan a esta categoría (incluyendo los módulos de las subcategorías)
     
 
 ### Tarea Programada
@@ -114,7 +114,7 @@ Desde este panel podrá **configurar la tarea de la misma forma que cualquier ot
 
 Documentación oficial para configurar tareas programadas: [https://docs.moodle.org/4x/en/Scheduled\_tasks](https://docs.moodle.org/4x/en/Scheduled_tasks)
 
-Debido a la posible duración de la tarea y a que crea nuevos contenidos en el curso para los estudiantes finales, se recomienda configurar la tarea para que se ejecute una vez al día en horario con poca concurrencia en la plataforma (por defecto, se crea configurada para que pase todos los días a las 3 a.m)
+Debido a la posible duración de la tarea y a que crea nuevos contenidos en el módulo para los estudiantes finales, se recomienda configurar la tarea para que se ejecute una vez al día en horario con poca concurrencia en la plataforma (por defecto, se crea configurada para que pase todos los días a las 3 a.m)
 
 Independientemente del periodo de ejecución que se programe para esta tarea, **se recomienda configurar el cron para que se ejecute cada 30 segundos o cada minuto**, ya que este plugin utiliza eventos del core para realizar ciertos procesos, y sólo se dispararán durante la ejecución del cron.
 
@@ -125,15 +125,15 @@ Además de la ejecución programada, las tareas pueden lanzarse de forma manual 
 
 **Desde la página de ejecución manual del plugin:**
 
-En **Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas** podrá ejecutar de forma inmediata cualquiera de las dos tareas del plugin:
+En **Administración del sitio → Módulos → Educa Aragón → Ejecución manual de tareas** podrá ejecutar de forma inmediata cualquiera de las dos tareas del plugin:
 
-*   **Generación de materiales editables** (`transform_dynamic_content`): crea los recursos editables e imprimibles de los cursos a partir de sus contenidos dinámicos (SCORM/IMSCP). Ámbitos:
-    *   *Procesar todos los cursos*: todos los cursos no procesados según la configuración actual.
-    *   *Procesar un curso concreto*: un curso del listado (dispone de buscador). Si ya fue procesado, pedirá confirmación, ya que el reprocesado elimina los recursos generados anteriormente.
-    *   *Procesar un centro completo*: los cursos no procesados cuyo código de centro (primer tramo del nombre corto, p. ej. `50020125`) coincida con el indicado.
-*   **Importación de versiones de materiales** (`edition_versions_migrator`): copia las versiones editadas guardadas bajo identificadores antiguos hacia los recursos actuales de los cursos (misma lógica que el script CLI `migrate_edition_versions.php`). Se puede lanzar a nivel global, de curso concreto o de centro completo, y dispone de opciones: versión a aplicar tras importar, copia de la carpeta `original` y modo simulación (*dry-run*).
+*   **Generación de materiales editables** (`transform_dynamic_content`): crea los recursos editables e imprimibles de los módulos a partir de sus contenidos dinámicos (SCORM/IMSCP). Ámbitos:
+    *   *Procesar todos los módulos*: todos los módulos no procesados según la configuración actual.
+    *   *Procesar un módulo concreto*: un módulo del listado (dispone de buscador). Si ya fue procesado, pedirá confirmación, ya que el reprocesado elimina los recursos generados anteriormente.
+    *   *Procesar un centro completo*: los módulos no procesados cuyo código de centro (primer tramo del nombre corto, p. ej. `50020125`) coincida con el indicado.
+*   **Importación de versiones de materiales** (`edition_versions_migrator`): copia las versiones editadas guardadas bajo identificadores antiguos hacia los recursos actuales de los módulos (misma lógica que el script CLI `migrate_edition_versions.php`). Se puede lanzar a nivel global, de módulo concreto o de centro completo, y dispone de opciones: versión a aplicar tras importar, copia de la carpeta `original` y modo simulación (*dry-run*).
 
-    > **Requisito:** la importación de versiones necesita que la generación de materiales editables se haya ejecutado correctamente con anterioridad sobre los cursos afectados, ya que empareja las versiones con los recursos existentes. La propia generación ya importa automáticamente las versiones al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*).
+    > **Requisito:** la importación de versiones necesita que la generación de materiales editables se haya ejecutado correctamente con anterioridad sobre los módulos afectados, ya que empareja las versiones con los recursos existentes. La propia generación ya importa automáticamente las versiones al procesar un módulo por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*).
 
 Ambas ejecuciones muestran el resultado en pantalla y generan un documento de log en `<raíz_repo>/editions/_logs/`: `generacion_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`.
 
@@ -173,26 +173,26 @@ docker compose exec <servicio_moodle> php /var/www/html/admin/cli/scheduled_task
 
 #### Funcionamiento del proceso de importación
 
-Cuando la tarea **"Transformar contenidos dinámicos"** procesa un curso, realiza los siguientes pasos:
+Cuando la tarea **"Transformar contenidos dinámicos"** procesa un módulo, realiza los siguientes pasos:
 
-**1. Arranque y selección de cursos**
+**1. Arranque y selección de módulos**
 
 1.  Comprueba el ajuste *Activar tarea programada para transformar recursos*; si está desactivado, no se procesa nada (salvo que se fuerce la ejecución desde el lanzador manual).
-2.  Obtiene los cursos a procesar: todos los de la plataforma si *Aplicar a todos los cursos* está marcado, o los cursos visibles de la *Categoría* configurada (incluyendo sus subcategorías).
-3.  Descarta los cursos que ya consten como procesados en la tabla `local_educa_processedcourses`.
+2.  Obtiene los módulos a procesar: todos los de la plataforma si *Aplicar a todos los módulos* está marcado, o los módulos visibles de la *Categoría* configurada (incluyendo sus subcategorías).
+3.  Descarta los módulos que ya consten como procesados en la tabla `local_educa_processedcourses`.
 4.  Inicializa el repositorio de archivos, el generador de instancias de `mod_resource` y el contexto del usuario administrador.
 
-**2. Preparación del curso**
+**2. Preparación del módulo**
 
-1.  Registra el curso en `local_educa_processedcourses` (estado pendiente).
-2.  Localiza la carpeta del curso en el repositorio según el ajuste *Carpeta de contenidos fuente*: `<raíz_repo>/<shortname_curso>` si está vacío, o `<raíz_repo>/<carpeta_fuente>/<shortname_curso>` si tiene valor. Si no la encuentra, marca el curso con el error `no_associated_folder` y pasa al siguiente.
+1.  Registra el módulo en `local_educa_processedcourses` (estado pendiente).
+2.  Localiza la carpeta del módulo en el repositorio según el ajuste *Carpeta de contenidos fuente*: `<raíz_repo>/<shortname_módulo>` si está vacío, o `<raíz_repo>/<carpeta_fuente>/<shortname_módulo>` si tiene valor. Si no la encuentra, marca el módulo con el error `no_associated_folder` y pasa al siguiente.
 3.  Decide el modo de procesado:
-    *   Si existe `editions/<shortname_curso>/` **y** el curso ya tiene recursos editables registrados en `local_educa_editables` → **modo reconocimiento** (paso 5).
+    *   Si existe `editions/<shortname_módulo>/` **y** el módulo ya tiene recursos editables registrados en `local_educa_editables` → **modo reconocimiento** (paso 5).
     *   En caso contrario → **procesado inicial** (pasos 3, 4 y 7).
 
 **3. Procesado inicial: transformación**
 
-1.  Lista las subcarpetas de contenido del curso (`01`, `02`, …) y los módulos **SCORM/IMSCP** del curso (los de la sección 0 se ignoran).
+1.  Lista las subcarpetas de contenido del módulo (`01`, `02`, …) y los módulos **SCORM/IMSCP** del módulo (los de la sección 0 se ignoran).
 2.  Si el número de módulos SCORM/IMSCP coincide con el número de carpetas, intenta **asociar** cada módulo con su carpeta comparando los dígitos del nombre del módulo (`01`, `02`…) con el nombre de la carpeta.
 3.  Si las asociaciones no son posibles, o si no hay contenidos dinámicos, genera los recursos **sin asociación**.
 
@@ -211,23 +211,23 @@ Cuando la tarea **"Transformar contenidos dinámicos"** procesa un curso, realiz
 
 *Versión original:*
 
-1.  Crea en el repositorio la carpeta `editions/<shortname_curso>/<resourceid>/original/` con una copia de los archivos del recurso editable (si no existía ya).
+1.  Crea en el repositorio la carpeta `editions/<shortname_módulo>/<resourceid>/original/` con una copia de los archivos del recurso editable (si no existía ya).
 2.  Registra ambos recursos (editable e imprimible) en `local_educa_editables` con versión `original`.
 
-**5. Modo reconocimiento (cursos ya procesados)**
+**5. Modo reconocimiento (módulos ya procesados)**
 
-La tarea no vuelve a crear recursos: únicamente recorre los recursos editables registrados del curso y se asegura de que cada uno disponga de su carpeta `original` en `editions/<shortname_curso>/<resourceid>/`.
+La tarea no vuelve a crear recursos: únicamente recorre los recursos editables registrados del módulo y se asegura de que cada uno disponga de su carpeta `original` en `editions/<shortname_módulo>/<resourceid>/`.
 
 **6. Análisis de enlaces**
 
-Tras transformar los contenidos, para cada recurso editable del curso:
+Tras transformar los contenidos, para cada recurso editable del módulo:
 
 1.  Borra los resultados anteriores en `local_educa_resource_links`.
 2.  Analiza los archivos HTML de la versión `original` en busca de enlaces y registra su estado (activo, roto, corregido…) en dicha tabla.
 
 **7. Importación de versiones editadas (solo en el procesado inicial)**
 
-Solo si el curso se ha procesado por primera vez (pasos 3 y 4) y existe `editions/<shortname_curso>/` en el repositorio, la tarea migra automáticamente las versiones editadas que pudieran existir bajo **ids antiguos** hacia los ids de los recursos recién creados (misma lógica que el script CLI `migrate_edition_versions.php`, ver siguiente apartado). Se ejecuta **después** del análisis de enlaces, de modo que este solo analiza las versiones `original`.
+Solo si el módulo se ha procesado por primera vez (pasos 3 y 4) y existe `editions/<shortname_módulo>/` en el repositorio, la tarea migra automáticamente las versiones editadas que pudieran existir bajo **ids antiguos** hacia los ids de los recursos recién creados (misma lógica que el script CLI `migrate_edition_versions.php`, ver siguiente apartado). Se ejecuta **después** del análisis de enlaces, de modo que este solo analiza las versiones `original`.
 
 *   El emparejamiento entre ids antiguos y nuevos es posicional (ambas listas ordenadas numéricamente).
 *   Las versiones se **copian** (no se mueven) y **no se aplican**: los alumnos siguen viendo el contenido `original` hasta que un editor aplique una versión desde el panel de edición.
@@ -235,11 +235,11 @@ Solo si el curso se ha procesado por primera vez (pasos 3 y 4) y existe `edition
 
 **8. Resultado del procesado**
 
-El curso queda registrado en `local_educa_processedcourses` con uno de estos mensajes:
+El módulo queda registrado en `local_educa_processedcourses` con uno de estos mensajes:
 
 *   `correctly_processed`: procesado correctamente (modo asociación o reconocimiento).
 *   `correctly_processed_needassociation`: procesado correctamente, pero los recursos se generaron sin asociación; conviene revisar la correspondencia entre recursos y carpetas.
-*   `no_associated_folder`: no se encontró la carpeta del curso en el repositorio.
+*   `no_associated_folder`: no se encontró la carpeta del módulo en el repositorio.
 *   Mensaje de error, si el procesado falló por cualquier otra causa.
 
 
@@ -247,11 +247,11 @@ El curso queda registrado en `local_educa_processedcourses` con uno de estos men
 
 Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva la carpeta `editions/` de una instalación anterior, los recursos se vuelven a crear con **ids nuevos** y las versiones editadas quedan "huérfanas" bajo los ids antiguos. El script `cli/migrate_edition_versions.php` migra esas versiones a los ids nuevos para que vuelvan a aparecer en el panel de edición.
 
-> **Nota:** la tarea de transformación ya ejecuta esta migración automáticamente al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*). El script CLI sigue siendo útil para comprobar el emparejamiento por adelantado (`--dry-run --verbose`), migrar de forma controlada curso a curso (`--course`) o centro a centro (`--center`), o aplicar una versión migrada con `--apply-version`.
+> **Nota:** la tarea de transformación ya ejecuta esta migración automáticamente al procesar un módulo por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*). El script CLI sigue siendo útil para comprobar el emparejamiento por adelantado (`--dry-run --verbose`), migrar de forma controlada módulo a módulo (`--course`) o centro a centro (`--center`), o aplicar una versión migrada con `--apply-version`.
 
 **Flujo completo (ejecución manual):**
 
-1.  Procesar el curso con la tarea de transformación (ver *Ejecución manual de la tarea*). Se crean los recursos editables/imprimibles y sus carpetas `original` con los ids nuevos, y al final del procesado la tarea migra automáticamente las versiones existentes (paso 7). Los pasos siguientes solo son necesarios si se quiere comprobar el emparejamiento por adelantado o aplicar una versión de forma controlada.
+1.  Procesar el módulo con la tarea de transformación (ver *Ejecución manual de la tarea*). Se crean los recursos editables/imprimibles y sus carpetas `original` con los ids nuevos, y al final del procesado la tarea migra automáticamente las versiones existentes (paso 7). Los pasos siguientes solo son necesarios si se quiere comprobar el emparejamiento por adelantado o aplicar una versión de forma controlada.
 2.  Simular la migración y comprobar el emparejamiento:
 
     ```bash
@@ -264,7 +264,7 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
     php local/educaaragon/cli/migrate_edition_versions.php --course=<shortname> --verbose
     ```
 
-4.  Opcionalmente, aplicar una versión migrada a los módulos del curso:
+4.  Opcionalmente, aplicar una versión migrada a los módulos del módulo:
 
     ```bash
     php local/educaaragon/cli/migrate_edition_versions.php --course=<shortname> --apply-version=v1_2025-2026
@@ -274,7 +274,7 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
 
 | Opción | Descripción |
 |---|---|
-| `--course=SHORTNAME` | Filtra por curso (puede repetirse). Sin ella, procesa todos los cursos. |
+| `--course=SHORTNAME` | Filtra por módulo (puede repetirse). Sin ella, procesa todos los módulos. |
 | `--center=CODIGO` | Filtra por centro completo: migra todas las carpetas de `editions/` cuyo primer token del nombre corto coincida con el código (p. ej. `--center=50020125` migra `50020125-IFC303-16805`, `50020125-IFC303-16809`, …). Combinable con `--course`. |
 | `--apply-version=NOMBRE` | Aplica esa versión a los módulos tras migrar. Por defecto **no se aplica ninguna versión**: no hace falta, porque los recursos recién creados ya contienen el contenido `original`. |
 | `--include-original` | También copia la carpeta `original` antigua (por defecto se omite, ya que el procesado la regenera). |
@@ -293,7 +293,7 @@ php local/educaaragon/cli/migrate_edition_versions.php --center=50020125 --apply
 
 **Documento de log:**
 
-Cada ejecución del script genera automáticamente un documento de log en `<raíz_repo>/editions/_logs/` con todos los cambios realizados (emparejamientos de ids, versiones copiadas, omitidas o aplicadas, errores y cursos no encontrados, cada línea con su fecha y hora) y un **resumen final** con los totales de la ejecución. El nombre del fichero sigue el patrón `migracion_<centro|todos>_<fecha>[_dryrun].log`, por ejemplo `migracion_50020125_20260918_103000.log`.
+Cada ejecución del script genera automáticamente un documento de log en `<raíz_repo>/editions/_logs/` con todos los cambios realizados (emparejamientos de ids, versiones copiadas, omitidas o aplicadas, errores y módulos no encontrados, cada línea con su fecha y hora) y un **resumen final** con los totales de la ejecución. El nombre del fichero sigue el patrón `migracion_<centro|todos>_<fecha>[_dryrun].log`, por ejemplo `migracion_50020125_20260918_103000.log`.
 
 **Puntos importantes:**
 
@@ -304,14 +304,14 @@ Cada ejecución del script genera automáticamente un documento de log en `<raí
 
 **Otros scripts CLI relacionados:**
 
-*   `cli/restore_versions.php`: reaplica masivamente la versión `original` de `editions/` a los módulos del curso. Útil para revertir recursos a su estado inicial. Soporta `--course`, `--category`, `--dry-run` y `--verbose`.
-*   `cli/reprocess_course.php`: deja un curso como "no procesado" para que la tarea lo regenere. Borra los recursos editables/imprimibles del curso, sus registros en las tablas del plugin y **toda** la carpeta `editions/<shortname>`, incluidas las carpetas de ids antiguos. **Haga una copia de seguridad de `editions/<shortname>` antes de usarlo.**
+*   `cli/restore_versions.php`: reaplica masivamente la versión `original` de `editions/` a los módulos del módulo. Útil para revertir recursos a su estado inicial. Soporta `--course`, `--category`, `--dry-run` y `--verbose`.
+*   `cli/reprocess_course.php`: deja un módulo como "no procesado" para que la tarea lo regenere. Borra los recursos editables/imprimibles del módulo, sus registros en las tablas del plugin y **toda** la carpeta `editions/<shortname>`, incluidas las carpetas de ids antiguos. **Haga una copia de seguridad de `editions/<shortname>` antes de usarlo.**
 
     ```bash
     php local/educaaragon/cli/reprocess_course.php --shortname=<shortname>
     ```
 
-> **Cuidado con el botón "Reprocesar" de la web:** en el panel de cursos procesados (`processedcourses.php`) hay una acción "reprocesar" que llama a `reprocessing_external::reprocessing_course()`. Esta acción **elimina toda la carpeta `editions/<shortname>` del curso**, incluidas las versiones editadas y las carpetas de ids antiguos, y deja el curso como no procesado. Haga una copia de seguridad de `editions/<shortname>` antes de usarla. Para un reprocesado no destructivo use el lanzador manual (ver *Ejecución manual de tareas*).
+> **Cuidado con el botón "Reprocesar" de la web:** en el panel de módulos procesados (`processedcourses.php`) hay una acción "reprocesar" que llama a `reprocessing_external::reprocessing_course()`. Esta acción **elimina toda la carpeta `editions/<shortname>` del módulo**, incluidas las versiones editadas y las carpetas de ids antiguos, y deja el módulo como no procesado. Haga una copia de seguridad de `editions/<shortname>` antes de usarla. Para un reprocesado no destructivo use el lanzador manual (ver *Ejecución manual de tareas*).
 
 
 Desinstalación
