@@ -23,7 +23,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026091803;
+$plugin->version = 2026091804;
 $plugin->requires = 2022112811;
 $plugin->component = 'local_educaaragon';
 $plugin->release = 'v1.0-beta-1';

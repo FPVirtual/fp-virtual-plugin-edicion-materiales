@@ -125,11 +125,26 @@ function write_execution_log(string $prefix, array $lines): string {
     $repository = get_repository();
     $logsdir = rtrim($repository->get_rootpath(), '/') . '/' . \local_educaaragon\processcourse::EDITIONS_FOLDER . '/_logs/';
     if (!is_dir($logsdir) && !mkdir($logsdir, 0775, true) && !is_dir($logsdir)) {
-        throw new RuntimeException('No se pudo crear la carpeta de logs: ' . $logsdir);
+        $error = error_get_last();
+        throw new RuntimeException('No se pudo crear la carpeta de logs: ' . $logsdir
+            . ' — ' . ($error['message'] ?? 'sin detalle'));
+    }
+    clearstatcache(true, $logsdir);
+    if (!is_writable($logsdir)) {
+        // Some FTP-backed mounts create folders owned by the FTP user without write
+        // permission for the web server; try to fix the permissions explicitly.
+        @chmod($logsdir, 0775);
+        clearstatcache(true, $logsdir);
+    }
+    if (!is_writable($logsdir)) {
+        throw new RuntimeException('La carpeta de logs no tiene permisos de escritura para el servidor web: '
+            . $logsdir . ' (propietario actual: ' . fileowner($logsdir) . ')');
     }
     $logfile = $logsdir . clean_string($prefix) . '_' . date('Ymd_His') . '.log';
-    if (file_put_contents($logfile, implode(PHP_EOL, $lines) . PHP_EOL) === false) {
-        throw new RuntimeException('No se pudo escribir el fichero de log: ' . $logfile);
+    if (@file_put_contents($logfile, implode(PHP_EOL, $lines) . PHP_EOL) === false) {
+        $error = error_get_last();
+        throw new RuntimeException('No se pudo escribir el fichero de log: ' . $logfile
+            . ' — ' . ($error['message'] ?? 'sin detalle'));
     }
     return $logfile;
 }
