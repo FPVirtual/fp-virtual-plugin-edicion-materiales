@@ -33,13 +33,13 @@ El plugin se instala como cualquier otro plugin Local de Moodle, en la ruta `/lo
 ```
 local/educaaragon/
 ├── version.php              # Versión del plugin y dependencias
-├── lib.php                  # Funciones de ayuda globales (remove_accents, copy_folder, etc.)
+├── lib.php                  # Funciones de ayuda globales (remove_accents, copy_folder, write_execution_log, etc.)
 ├── settings.php             # Páginas de administración y configuración
 ├── editables.php            # Listado de recursos editables de un curso
 ├── editresource.php         # Editor de contenido HTML de una versión
 ├── editresourcetoc.php      # Editor de la tabla de contenidos (TOC)
 ├── processedcourses.php     # Panel de cursos procesados
-├── launchtask.php           # Lanzador manual de la tarea de transformación
+├── launchtask.php           # Ejecución manual de tareas (generación de materiales + importación de versiones, con log)
 ├── registereditions.php     # Registro de ediciones realizadas
 ├── resourcelinks.php        # Informe de enlaces de una versión
 ├── db/
@@ -161,8 +161,9 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 - **Documentación:** PHPDoc en inglés siguiendo el estándar de Moodle.
 - **Strings:** Todas las cadenas visibles para el usuario deben definirse en `lang/es/local_educaaragon.php` (idioma principal del proyecto) y en `lang/en/local_educaaragon.php`.
 - **Limpieza de strings:** Existe una función propia `clean_string()` en `lib.php` que elimina acentos, espacios y caracteres especiales para nombres de versión.
+- **Versionado:** La versión del plugin se declara en `version.php`: `$plugin->version` (formato `YYYYMMDDXX`, se incrementa en cada despliegue para que Moodle aplique los cambios) y `$plugin->release` (texto libre que refleja el último tag git, p. ej. `v1.0.0`). Todas las vistas del plugin muestran un pie informativo discreto generado por `local_educaaragon_version_footer()` (`lib.php`), que deriva la fecha automáticamente de `$plugin->version`.
 - **Manipulación HTML:** Se utiliza extensivamente `DOMDocument` de PHP; es habitual ver `libxml_use_internal_errors(true)` para suprimir warnings de HTML malformado.
-- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron.
+- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron. Las ejecuciones manuales (web y CLI) generan además un documento de log en `<repo>/editions/_logs/` mediante `write_execution_log()` (`lib.php`); la clase `edition_versions_migrator` recoge su detalle en `get_logs()`.
 
 ---
 
@@ -179,7 +180,7 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
      - Elegir si aplica a todos los cursos o a una categoría específica.
      - Activar la tarea programada cuando se desee que el cron procese los cursos automáticamente.
   3. Configurar la tarea programada en `Administración del sitio → Servidor → Tareas → Tareas Programadas`.
-  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Lanzar tarea de transformación` para todos los cursos configurados o para un curso concreto.
+  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas`, que permite lanzar la generación de materiales o la importación de versiones para todos los cursos, para un curso concreto o para un centro completo (generando log en `editions/_logs/`).
 
 ---
 

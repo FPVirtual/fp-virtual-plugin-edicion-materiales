@@ -59,6 +59,33 @@ class edition_versions_migrator {
     /** @var bool */
     private $verbose;
 
+    /** @var string[] Log lines collected during migrations, with timestamps. */
+    private $logs = [];
+
+    /**
+     * Returns the log lines collected during the migrations run.
+     *
+     * @return string[]
+     */
+    public function get_logs(): array {
+        return $this->logs;
+    }
+
+    /**
+     * Records a message in the log and echoes it. Details are only echoed
+     * when verbose; errors are always echoed.
+     *
+     * @param string $message
+     * @param bool $echoalways Echo even when not verbose.
+     * @return void
+     */
+    private function log(string $message, bool $echoalways = false): void {
+        $this->logs[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
+        if ($this->verbose || $echoalways) {
+            mtrace($message);
+        }
+    }
+
     /**
      * @param repository_filesystem $repository
      * @param bool $dryrun
@@ -111,6 +138,8 @@ class edition_versions_migrator {
         if (!is_dir($coursepath)) {
             return $stats;
         }
+        $this->log('');
+        $this->log('=== Curso: ' . $course->shortname . ' (id=' . $course->id . ') ===');
 
         // Current editable resourceids of the course, in ascending order.
         $currenteditables = $DB->get_records('local_educa_editables', [
@@ -150,9 +179,7 @@ class edition_versions_migrator {
             $oldpath = $coursepath . $oldid . '/';
             $newpath = $coursepath . $newid . '/';
 
-            if ($this->verbose) {
-                mtrace('  Migrating old resourceid ' . $oldid . ' -> ' . $newid);
-            }
+            $this->log('  Migrating old resourceid ' . $oldid . ' -> ' . $newid);
 
             foreach (scandir($oldpath) as $versionname) {
                 if ($versionname === '.' || $versionname === '..' || !is_dir($oldpath . $versionname)) {
@@ -164,25 +191,21 @@ class edition_versions_migrator {
                 $src = $oldpath . $versionname . '/';
                 $dst = $newpath . $versionname . '/';
                 if (is_dir($dst)) {
-                    if ($this->verbose) {
-                        mtrace('  Version ' . $versionname . ' already exists in ' . $newid . ', skipping');
-                    }
+                    $this->log('  Version ' . $versionname . ' already exists in ' . $newid . ', skipping');
                     $stats['skipped']++;
                     continue;
                 }
                 if ($this->dryrun) {
-                    mtrace('  [DRY-RUN] Would copy version ' . $versionname . ' from ' . $oldid . ' to ' . $newid);
+                    $this->log('  [DRY-RUN] Would copy version ' . $versionname . ' from ' . $oldid . ' to ' . $newid, true);
                     $stats['migratedversions']++;
                     continue;
                 }
                 try {
                     copy_folder($src, $dst);
-                    if ($this->verbose) {
-                        mtrace('  Copied version ' . $versionname);
-                    }
+                    $this->log('  Copied version ' . $versionname);
                     $stats['migratedversions']++;
                 } catch (Exception $e) {
-                    mtrace('  Error copying version ' . $versionname . ': ' . $e->getMessage());
+                    $this->log('  Error copying version ' . $versionname . ': ' . $e->getMessage(), true);
                     $stats['errors']++;
                     continue;
                 }
@@ -197,6 +220,11 @@ class edition_versions_migrator {
         }
 
         $stats['migratedresources'] = $paircount;
+        $this->log('  -> Recursos emparejados: ' . $stats['migratedresources']
+            . ' | Versiones copiadas: ' . $stats['migratedversions']
+            . ' | Versiones aplicadas: ' . $stats['appliedversions']
+            . ' | Omitidas: ' . $stats['skipped']
+            . ' | Errores: ' . $stats['errors']);
         return $stats;
     }
 
@@ -215,9 +243,7 @@ class edition_versions_migrator {
         $coursepath = $this->editionspath . $course->shortname . '/';
         $versiondir = $coursepath . $newid . '/' . $this->applyversion . '/';
         if (!is_dir($versiondir)) {
-            if ($this->verbose) {
-                mtrace('  Version ' . $this->applyversion . ' not found after migrating resourceid ' . $newid);
-            }
+            $this->log('  Version ' . $this->applyversion . ' not found after migrating resourceid ' . $newid);
             return false;
         }
         $cm = $DB->get_record('course_modules', [
@@ -226,7 +252,7 @@ class edition_versions_migrator {
             'course' => $course->id,
         ]);
         if (!$cm) {
-            mtrace('  Course module not found for resourceid ' . $newid);
+            $this->log('  Course module not found for resourceid ' . $newid, true);
             $stats['errors']++;
             return false;
         }
@@ -238,9 +264,7 @@ class edition_versions_migrator {
             $manager->applyversion();
             $manager->apllyversionprintable();
             $transaction->allow_commit();
-            if ($this->verbose) {
-                mtrace('  Applied version ' . $this->applyversion . ' to resourceid ' . $newid);
-            }
+            $this->log('  Applied version ' . $this->applyversion . ' to resourceid ' . $newid);
             return true;
         } catch (Exception $e) {
             if (isset($transaction)) {
@@ -250,7 +274,7 @@ class edition_versions_migrator {
                     // Ignored.
                 }
             }
-            mtrace('  Error applying version ' . $this->applyversion . ': ' . $e->getMessage());
+            $this->log('  Error applying version ' . $this->applyversion . ': ' . $e->getMessage(), true);
             $stats['errors']++;
             return false;
         }

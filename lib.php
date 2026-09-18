@@ -114,6 +114,52 @@ function encode_html_entities(string $text): string {
 }
 
 /**
+ * Escribe un documento de log de ejecución en <repo>/editions/_logs/.
+ *
+ * @param string $prefix Prefijo del nombre del fichero (p. ej. 'generacion' o 'importacion').
+ * @param string[] $lines Líneas del documento de log.
+ * @return string Ruta completa del fichero creado.
+ * @throws RuntimeException Si no se puede crear la carpeta o escribir el fichero.
+ */
+function write_execution_log(string $prefix, array $lines): string {
+    $repository = get_repository();
+    $logsdir = rtrim($repository->get_rootpath(), '/') . '/' . processcourse::EDITIONS_FOLDER . '/_logs/';
+    if (!is_dir($logsdir) && !mkdir($logsdir, 0775, true) && !is_dir($logsdir)) {
+        throw new RuntimeException('No se pudo crear la carpeta de logs: ' . $logsdir);
+    }
+    $logfile = $logsdir . clean_string($prefix) . '_' . date('Ymd_His') . '.log';
+    if (file_put_contents($logfile, implode(PHP_EOL, $lines) . PHP_EOL) === false) {
+        throw new RuntimeException('No se pudo escribir el fichero de log: ' . $logfile);
+    }
+    return $logfile;
+}
+
+/**
+ * Devuelve un pie de página informativo y discreto con la versión del plugin,
+ * para mostrar al final de todas las vistas del plugin. Ejemplo de salida:
+ * local_educaaragon · v1.0.0 · 2026-09-18
+ *
+ * La fecha se deriva automáticamente de $plugin->version (formato YYYYMMDDXX),
+ * por lo que solo hay que mantener actualizado $plugin->release (el tag).
+ *
+ * @return string HTML del pie informativo.
+ */
+function local_educaaragon_version_footer(): string {
+    $plugininfo = core_plugin_manager::instance()->get_plugin_info('local_educaaragon');
+    $parts = ['local_educaaragon'];
+    if (!empty($plugininfo->release)) {
+        $parts[] = $plugininfo->release;
+    }
+    $version = (string)($plugininfo->versiondb ?? '');
+    if (preg_match('/^(\d{4})(\d{2})(\d{2})/', $version, $matches)) {
+        $parts[] = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
+    }
+    return html_writer::tag('div', implode(' · ', $parts), [
+        'class' => 'text-muted small mt-4 mb-1',
+    ]);
+}
+
+/**
  * @param $url
  * @return bool
  */

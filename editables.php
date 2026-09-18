@@ -64,4 +64,5 @@ $editablespage = new editables_page($courseid);
 
 echo $output->header();
 echo $output->render($editablespage);
+echo local_educaaragon_version_footer();
 echo $output->footer();

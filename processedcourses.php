@@ -46,4 +46,5 @@ $processedcoursespage = new processedcourses_page();
 
 echo $output->header();
 echo $output->render($processedcoursespage);
+echo local_educaaragon_version_footer();
 echo $output->footer();

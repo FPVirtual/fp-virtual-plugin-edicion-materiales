@@ -49,4 +49,5 @@ $editresourcetoc = new editresourcetoc_page($resourceid);
 
 echo $output->header();
 echo $output->render($editresourcetoc);
+echo local_educaaragon_version_footer();
 echo $output->footer();

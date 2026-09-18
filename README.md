@@ -10,7 +10,7 @@
     - [Carpeta temporal de procesado (`fileprocessing/`)](#carpeta-temporal-de-procesado-fileprocessing)
   - [Configuración](#configuración)
     - [Tarea Programada](#tarea-programada)
-    - [Ejecución manual de la tarea](#ejecución-manual-de-la-tarea)
+    - [Ejecución manual de tareas](#ejecución-manual-de-tareas)
       - [Funcionamiento del proceso de importación](#funcionamiento-del-proceso-de-importación)
       - [Migración de versiones entre instalaciones (CLI)](#migración-de-versiones-entre-instalaciones-cli)
 - [Desinstalación](#desinstalación)
@@ -119,13 +119,23 @@ Debido a la posible duración de la tarea y a que crea nuevos contenidos en el c
 Independientemente del periodo de ejecución que se programe para esta tarea, **se recomienda configurar el cron para que se ejecute cada 30 segundos o cada minuto**, ya que este plugin utiliza eventos del core para realizar ciertos procesos, y sólo se dispararán durante la ejecución del cron.
 
 
-### Ejecución manual de la tarea
+### Ejecución manual de tareas
 
-Además de la ejecución programada, la tarea puede lanzarse de forma manual cuando sea necesario. Existen tres métodos:
+Además de la ejecución programada, las tareas pueden lanzarse de forma manual cuando sea necesario. Existen tres métodos:
 
-**Desde la página de lanzamiento del plugin:**
+**Desde la página de ejecución manual del plugin:**
 
-En **Administración del sitio → Cursos → Educa Aragón → Lanzar tarea de transformación** podrá ejecutar la transformación de forma inmediata, bien sobre **todos los cursos configurados**, bien sobre **un curso concreto** seleccionándolo del listado (dispone de un buscador para localizarlo fácilmente).
+En **Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas** podrá ejecutar de forma inmediata cualquiera de las dos tareas del plugin:
+
+*   **Generación de materiales editables** (`transform_dynamic_content`): crea los recursos editables e imprimibles de los cursos a partir de sus contenidos dinámicos (SCORM/IMSCP). Ámbitos:
+    *   *Procesar todos los cursos*: todos los cursos no procesados según la configuración actual.
+    *   *Procesar un curso concreto*: un curso del listado (dispone de buscador). Si ya fue procesado, pedirá confirmación, ya que el reprocesado elimina los recursos generados anteriormente.
+    *   *Procesar un centro completo*: los cursos no procesados cuyo código de centro (primer tramo del nombre corto, p. ej. `50020125`) coincida con el indicado.
+*   **Importación de versiones de materiales** (`edition_versions_migrator`): copia las versiones editadas guardadas bajo identificadores antiguos hacia los recursos actuales de los cursos (misma lógica que el script CLI `migrate_edition_versions.php`). Se puede lanzar a nivel global, de curso concreto o de centro completo, y dispone de opciones: versión a aplicar tras importar, copia de la carpeta `original` y modo simulación (*dry-run*).
+
+    > **Requisito:** la importación de versiones necesita que la generación de materiales editables se haya ejecutado correctamente con anterioridad sobre los cursos afectados, ya que empareja las versiones con los recursos existentes. La propia generación ya importa automáticamente las versiones al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*).
+
+Ambas ejecuciones muestran el resultado en pantalla y generan un documento de log en `<raíz_repo>/editions/_logs/`: `generacion_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`.
 
 **Desde la interfaz web:**
 
@@ -237,7 +247,7 @@ El curso queda registrado en `local_educa_processedcourses` con uno de estos men
 
 Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva la carpeta `editions/` de una instalación anterior, los recursos se vuelven a crear con **ids nuevos** y las versiones editadas quedan "huérfanas" bajo los ids antiguos. El script `cli/migrate_edition_versions.php` migra esas versiones a los ids nuevos para que vuelvan a aparecer en el panel de edición.
 
-> **Nota:** la tarea de transformación ya ejecuta esta migración automáticamente al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*). El script CLI sigue siendo útil para comprobar el emparejamiento por adelantado (`--dry-run --verbose`), migrar de forma controlada curso a curso, o aplicar una versión migrada con `--apply-version`.
+> **Nota:** la tarea de transformación ya ejecuta esta migración automáticamente al procesar un curso por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*). El script CLI sigue siendo útil para comprobar el emparejamiento por adelantado (`--dry-run --verbose`), migrar de forma controlada curso a curso (`--course`) o centro a centro (`--center`), o aplicar una versión migrada con `--apply-version`.
 
 **Flujo completo (ejecución manual):**
 
@@ -265,10 +275,25 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
 | Opción | Descripción |
 |---|---|
 | `--course=SHORTNAME` | Filtra por curso (puede repetirse). Sin ella, procesa todos los cursos. |
+| `--center=CODIGO` | Filtra por centro completo: migra todas las carpetas de `editions/` cuyo primer token del nombre corto coincida con el código (p. ej. `--center=50020125` migra `50020125-IFC303-16805`, `50020125-IFC303-16809`, …). Combinable con `--course`. |
 | `--apply-version=NOMBRE` | Aplica esa versión a los módulos tras migrar. Por defecto **no se aplica ninguna versión**: no hace falta, porque los recursos recién creados ya contienen el contenido `original`. |
 | `--include-original` | También copia la carpeta `original` antigua (por defecto se omite, ya que el procesado la regenera). |
 | `--dry-run` | Muestra qué haría sin aplicar cambios. |
 | `--verbose` | Muestra el detalle de cada recurso. |
+
+**Ejemplo de migración de un centro completo:**
+
+```bash
+# Simular primero y comprobar el emparejamiento:
+php local/educaaragon/cli/migrate_edition_versions.php --center=50020125 --dry-run --verbose
+
+# Ejecutar de verdad y aplicar la versión migrada:
+php local/educaaragon/cli/migrate_edition_versions.php --center=50020125 --apply-version=v1_2025-2026
+```
+
+**Documento de log:**
+
+Cada ejecución del script genera automáticamente un documento de log en `<raíz_repo>/editions/_logs/` con todos los cambios realizados (emparejamientos de ids, versiones copiadas, omitidas o aplicadas, errores y cursos no encontrados, cada línea con su fecha y hora) y un **resumen final** con los totales de la ejecución. El nombre del fichero sigue el patrón `migracion_<centro|todos>_<fecha>[_dryrun].log`, por ejemplo `migracion_50020125_20260918_103000.log`.
 
 **Puntos importantes:**
 
@@ -286,7 +311,7 @@ Si se reinstala la plataforma desde cero (base de datos limpia) pero se conserva
     php local/educaaragon/cli/reprocess_course.php --shortname=<shortname>
     ```
 
-> **Cuidado con el botón "Reprocesar" de la web:** en el panel de cursos procesados (`processedcourses.php`) hay una acción "reprocesar" que llama a `reprocessing_external::reprocessing_course()`. Esta acción **elimina toda la carpeta `editions/<shortname>` del curso**, incluidas las versiones editadas y las carpetas de ids antiguos, y deja el curso como no procesado. Haga una copia de seguridad de `editions/<shortname>` antes de usarla. Para un reprocesado no destructivo use el lanzador manual (ver *Ejecución manual de la tarea*).
+> **Cuidado con el botón "Reprocesar" de la web:** en el panel de cursos procesados (`processedcourses.php`) hay una acción "reprocesar" que llama a `reprocessing_external::reprocessing_course()`. Esta acción **elimina toda la carpeta `editions/<shortname>` del curso**, incluidas las versiones editadas y las carpetas de ids antiguos, y deja el curso como no procesado. Haga una copia de seguridad de `editions/<shortname>` antes de usarla. Para un reprocesado no destructivo use el lanzador manual (ver *Ejecución manual de tareas*).
 
 
 Desinstalación

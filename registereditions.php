@@ -57,4 +57,5 @@ $registereditionspage = new registereditions_page($resourceid);
 
 echo $output->header();
 echo $output->render($registereditionspage);
+echo local_educaaragon_version_footer();
 echo $output->footer();

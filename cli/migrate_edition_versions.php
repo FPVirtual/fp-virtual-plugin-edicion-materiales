@@ -21,6 +21,10 @@
  * local_educaaragon\edition_versions_migrator, que también ejecuta la tarea
  * programada en el primer procesado de un curso.
  *
+ * Permite migrar un centro completo (todas las carpetas cuyo primer token
+ * del shortname coincide) y genera un documento de log con todos los cambios
+ * realizados y un resumen final en <repo>/editions/_logs/.
+ *
  * @package    local_educaaragon
  * @author     3iPunt <https://www.tresipunt.com/>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -40,6 +44,7 @@ use local_educaaragon\edition_versions_migrator;
 // ============================================================================
 $longopts = [
     'course:',
+    'center:',
     'apply-version:',
     'include-original',
     'dry-run',
@@ -53,6 +58,7 @@ if (isset($options['course'])) {
     $coursesfilter = is_array($options['course']) ? $options['course'] : [$options['course']];
 }
 
+$centerfilter    = isset($options['center']) ? trim($options['center']) : '';
 $applyversion    = isset($options['apply-version']) ? $options['apply-version'] : '';
 $includeoriginal = isset($options['include-original']);
 $dryrun          = isset($options['dry-run']);
@@ -67,14 +73,20 @@ if (isset($options['help'])) {
     echo "  php local/educaaragon/cli/migrate_edition_versions.php [opciones]\n\n";
     echo "Opciones:\n";
     echo "  --course=SHORTNAME      Filtrar por shortname de curso (puede repetirse).\n";
+    echo "  --center=CODIGO         Migrar todas las carpetas cuyo primer token del\n";
+    echo "                          shortname coincide (ej. 50020125 migrara\n";
+    echo "                          50020125-IFC303-16805, 50020125-IFC303-16809, ...).\n";
     echo "  --apply-version=NAME    Aplicar esta version tras migrar (ej. v1_2025-2026).\n";
     echo "  --include-original      Tambien copia la carpeta 'original' del antiguo.\n";
     echo "  --dry-run               Muestra que haria sin aplicar cambios.\n";
     echo "  --verbose               Muestra detalle de cada recurso.\n";
     echo "  --help                  Muestra esta ayuda.\n\n";
-    echo "Ejemplo:\n";
+    echo "Ejemplos:\n";
     echo "  php local/educaaragon/cli/migrate_edition_versions.php --dry-run --verbose\n";
     echo "  php local/educaaragon/cli/migrate_edition_versions.php --course=50020125-IFC303-16805 --apply-version=v1_2025-2026\n";
+    echo "  php local/educaaragon/cli/migrate_edition_versions.php --center=50020125 --apply-version=v1_2025-2026\n\n";
+    echo "Al finalizar se genera un documento de log en editions/_logs/ con todos\n";
+    echo "los cambios realizados y un resumen final.\n";
     exit(0);
 }
 
@@ -94,7 +106,30 @@ if (!is_dir($editionspath)) {
     cli_error('No existe la carpeta editions/ en el repositorio: ' . $editionspath);
 }
 
-$migrator = new edition_versions_migrator($repository, $dryrun, $applyversion, $includeoriginal, $verbose);
+$loglabel  = $centerfilter !== '' ? $centerfilter : 'todos';
+$logsuffix = $dryrun ? '_dryrun' : '';
+
+$loglines = [];
+$log = function(string $message) use (&$loglines): void {
+    $loglines[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
+};
+
+$filtersdesc = $centerfilter !== '' ? 'centro=' . $centerfilter : 'todos los cursos';
+if (!empty($coursesfilter)) {
+    $filtersdesc .= ' | cursos=' . implode(',', $coursesfilter);
+}
+$optionsdesc = trim(($dryrun ? 'dry-run ' : '')
+    . ($applyversion !== '' ? 'apply-version=' . $applyversion . ' ' : '')
+    . ($includeoriginal ? 'include-original ' : '')
+    . ($verbose ? 'verbose' : ''));
+
+$log('============================================================');
+$log(' MIGRACION DE VERSIONES EDITADAS');
+$log(' Fecha:       ' . date('Y-m-d H:i:s'));
+$log(' Repositorio: ' . $rootpath);
+$log(' Filtros:     ' . $filtersdesc);
+$log(' Opciones:    ' . ($optionsdesc !== '' ? $optionsdesc : '(ninguna)'));
+$log('============================================================');
 
 // ============================================================================
 // ESTADISTICAS
@@ -115,7 +150,7 @@ if ($coursedirs === false) {
 }
 
 foreach ($coursedirs as $coursedir) {
-    if ($coursedir === '.' || $coursedir === '..') {
+    if ($coursedir === '.' || $coursedir === '..' || $coursedir === '_logs') {
         continue;
     }
 
@@ -125,8 +160,13 @@ foreach ($coursedirs as $coursedir) {
         continue;
     }
 
-    // Filtro por shortname.
+    // Filtro por shortname exacto.
     if (!empty($coursesfilter) && !in_array($courseshortname, $coursesfilter, true)) {
+        continue;
+    }
+
+    // Filtro por centro: primer token del shortname (ej. 50020125).
+    if ($centerfilter !== '' && explode('-', $courseshortname)[0] !== $centerfilter) {
         continue;
     }
 
@@ -134,6 +174,7 @@ foreach ($coursedirs as $coursedir) {
     $course = $DB->get_record('course', ['shortname' => $courseshortname]);
     if (!$course) {
         cli_writeln('Curso no encontrado en Moodle: ' . $courseshortname);
+        $log('ERROR: Curso no encontrado en Moodle: ' . $courseshortname);
         $errors++;
         continue;
     }
@@ -143,12 +184,15 @@ foreach ($coursedirs as $coursedir) {
         cli_writeln('Curso: ' . $courseshortname . ' (id=' . $course->id . ')');
     }
 
+    $migrator = new edition_versions_migrator($repository, $dryrun, $applyversion, $includeoriginal, $verbose);
     $stats = $migrator->migrate_course($course);
+    $loglines = array_merge($loglines, $migrator->get_logs());
 
     if ($stats['migratedresources'] === 0) {
         if ($verbose) {
             cli_writeln('   Nada que migrar para este curso');
         }
+        $log('Nada que migrar para este curso.');
         $skippedresources += $stats['skipped'];
         $errors += $stats['errors'];
         continue;
@@ -177,10 +221,34 @@ cli_writeln('Saltadas/omitidas:      ' . $skippedresources);
 cli_writeln('Errores:                ' . $errors);
 cli_writeln('═══════════════════════════════════════════════');
 
+$log('');
+$log('============================================================');
+$log(' RESUMEN DE MIGRACION');
+$log('============================================================');
+$log('Cursos procesados:    ' . $processedcourses);
+$log('Recursos emparejados: ' . $migratedresources);
+$log('Versiones copiadas:   ' . $migratedversions);
+$log('Versiones aplicadas:  ' . $appliedversions);
+$log('Saltadas/omitidas:    ' . $skippedresources);
+$log('Errores:              ' . $errors);
 if ($dryrun) {
     cli_writeln('');
     cli_writeln('Se ejecuto en modo --dry-run. No se realizaron cambios.');
     cli_writeln('   Revisa el emparejamiento y ejecuta sin --dry-run para aplicar.');
+    $log('Modo dry-run: no se realizaron cambios.');
 }
+$log('============================================================');
+
+// ============================================================================
+// ESCRITURA DEL DOCUMENTO DE LOG
+// ============================================================================
+try {
+    $logfile = write_execution_log('migracion_' . $loglabel . $logsuffix, $loglines);
+} catch (Exception $e) {
+    cli_error($e->getMessage());
+}
+
+cli_writeln('');
+cli_writeln('Log guardado en: ' . $logfile);
 
 exit($errors > 0 ? 1 : 0);

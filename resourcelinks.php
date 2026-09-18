@@ -51,4 +51,5 @@ $editresource = new resourcelinks_page($resourceid, $version);
 
 echo $output->header();
 echo $output->render($editresource);
+echo local_educaaragon_version_footer();
 echo $output->footer();
