@@ -84,6 +84,8 @@ Si ya existe `editions/<shortname_módulo>/` y el módulo ya tiene recursos edit
 
 La generación de los recursos imprimibles utiliza como ruta de trabajo intermedia la carpeta `local/educaaragon/fileprocessing/` dentro de la instalación de Moodle. Debe tener permisos de escritura para el usuario del servidor web (el plugin la crea automáticamente si no existe al procesar un módulo).
 
+> **Requisito de despliegue:** todo el plugin (incluida la carpeta `fileprocessing/`) debe pertenecer al usuario del servidor web tras desplegar. Si se despliega con otro propietario (p. ej. al copiar con un usuario distinto de `www-data`), el procesado fallará al generar el imprimible; el plugin lo detecta antes de empezar y registra el error en `local_educa_processedcourses.message`. Corrígelo con `chown -R www-data:www-data local/educaaragon/` (ajusta el usuario a tu servidor web).
+
 > **En entornos contenerizados (Docker/Podman):** esta carpeta vive dentro del contenedor y normalmente **no está montada en el host**, por lo que no la verás desde el sistema de archivos del servidor. Si necesitas inspeccionarla, hazlo desde dentro del contenedor.
 
 

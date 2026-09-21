@@ -451,6 +451,11 @@ class processcourse {
      */
     private function create_pintable_resource(cm_info $cm, array $folder): stdClass {
         global $DB;
+        if (!is_writable($this->processingroute)) {
+            throw new RuntimeException(
+                get_string('errorprocessingnotwritable', 'local_educaaragon', $this->processingroute)
+            );
+        }
         $this->empty_processingroute();
         $files = $this->repository->get_listing($folder['path'])['list'];
         foreach ($files as $file) {

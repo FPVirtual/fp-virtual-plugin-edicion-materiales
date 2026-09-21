@@ -174,7 +174,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 No existe un proceso de build personalizado (no hay `package.json`, `composer.json`, `Gruntfile`, etc.).
 
 - **AMD:** Los archivos de `amd/src/` deben compilarse a `amd/build/` usando las herramientas estándar de Moodle (`grunt amd` desde la raíz de Moodle, o el proceso de desarrollo habitual del core).
-- **Instalación:** Copiar la carpeta del plugin a `/local/educaaragon/` y visitar la administración de Moodle para completar la instalación (creación de tablas, servicios, eventos, tarea programada y capacidades).
+- **Instalación:** Copiar la carpeta del plugin a `/local/educaaragon/` y visitar la administración de Moodle para completar la instalación (creación de tablas, servicios, eventos, tarea programada y capacidades). **Requisito de despliegue:** todo el plugin, incluida la carpeta `fileprocessing/`, debe pertenecer al usuario del servidor web tras desplegar (p. ej. `chown -R www-data:www-data local/educaaragon/`); si no, el procesado falla al generar el imprimible y el error queda registrado en `local_educa_processedcourses.message`.
 - **Configuración obligatoria tras la instalación:**
   1. Crear un repositorio de tipo *Sistema de archivos* en Moodle.
   2. En `Administración del sitio → Cursos → Educa Aragón → Ajustes generales`:
@@ -217,4 +217,4 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
 - **El editor de TOC** (`amd/src/edittoc.js`) implementa su propia biblioteca de drag-and-drop basada en jQuery. Cualquier cambio en la estructura del DOM de la tabla de contenidos puede romper la serialización.
 - **La tarea programada utiliza `phpunit_util::get_data_generator()`** para obtener el generador de instancias de `mod_resource`. Esto es inusual para código de producción; si Moodle cambia esta API interna, la tarea podría fallar.
 - **Codificación de caracteres:** El proyecto maneja textos en español con tildes y eñes. Al manipular `DOMDocument`, se usan conversiones entre UTF-8 y `HTML-ENTITIES`; cualquier cambio en este flujo puede provocar problemas de codificación.
-- **Carpeta temporal de procesado:** `fileprocessing/` se utiliza como ruta de trabajo intermedia para la generación de recursos imprimibles. Debe tener permisos de escritura.
+- **Carpeta temporal de procesado:** `fileprocessing/` se utiliza como ruta de trabajo intermedia para la generación de recursos imprimibles. Debe tener permisos de escritura para el usuario del servidor web; `create_pintable_resource()` comprueba `is_writable()` antes de empezar y lanza `errorprocessingnotwritable` si no lo es.

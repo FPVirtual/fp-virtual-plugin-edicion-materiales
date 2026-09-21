@@ -118,6 +118,7 @@ $string['launchtask_all_none'] = 'There are no modules pending processing.';
 $string['launchtask_queued'] = 'Processing of {$a} queued: it will run in the background on the next cron execution. The log will be saved in the logs/ folder at the materials repository root.';
 $string['processcourses_task'] = 'Generate editable materials for';
 $string['migrateversionstask'] = 'Import material versions for courses';
+$string['errorprocessingnotwritable'] = 'The fileprocessing folder is not writable by the web server user: {$a}';
 
 // Tables
 $string['processedcourses'] = 'Processed modules';

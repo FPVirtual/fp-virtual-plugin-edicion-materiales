@@ -194,11 +194,24 @@ class transform_dynamic_content extends scheduled_task {
             if ($e->getMessage() === 'error/invalidpersistenterror') {
                 reprocessing_external::reprocessing_course($course->id);
                 $manage_logs->update_proccesed_course(false, 'error/invalidpersistenterror');
-            }
-            if ($e->getMessage() === 'error/Invalid file requested.') {
+            } else if ($e->getMessage() === 'error/Invalid file requested.') {
                 reprocessing_external::reprocessing_course($course->id);
                 $manage_logs->update_proccesed_course(false, 'error/invalidfilerequested');
+            } else {
+                $manage_logs->update_proccesed_course(false, substr(get_class($e) . ': ' . $e->getMessage(), 0, 500));
             }
+            mtrace(get_string(
+                'errorprocesscourse_desc',
+                'local_educaaragon',
+                ['course' => $course->shortname, 'error' => $e->getMessage()]
+            ));
+            return false;
+        } catch (\Throwable $e) {
+            // PHP 8 Errors/TypeErrors do not extend Exception; persist them too so
+            // the failure cause is recorded instead of aborting the run without trace.
+            $manage_logs = new manage_logs();
+            $manage_logs->create_processed_course($course->id);
+            $manage_logs->update_proccesed_course(false, substr(get_class($e) . ': ' . $e->getMessage(), 0, 500));
             mtrace(get_string(
                 'errorprocesscourse_desc',
                 'local_educaaragon',

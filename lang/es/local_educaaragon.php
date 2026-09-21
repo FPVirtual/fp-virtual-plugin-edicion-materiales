@@ -118,6 +118,7 @@ $string['launchtask_all_none'] = 'No hay módulos pendientes de procesar.';
 $string['launchtask_queued'] = 'Procesamiento de {$a} encolado: se ejecutará en segundo plano la próxima ejecución del cron. El log quedará guardado en la carpeta logs/ de la raíz del repositorio de materiales.';
 $string['processcourses_task'] = 'Generar materiales editables de cursos';
 $string['migrateversionstask'] = 'Importar versiones de materiales de cursos';
+$string['errorprocessingnotwritable'] = 'La carpeta fileprocessing no es escribible por el usuario del web: {$a}';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';
