@@ -64,7 +64,9 @@ local/educaaragon/
 │   ├── registereditions_table.php     # Tabla Moodle para registro de ediciones
 │   ├── resourcelinks_table.php        # Tabla Moodle para informe de enlaces
 │   ├── task/
-│   │   └── transform_dynamic_content.php   # Tarea programada
+│   │   ├── transform_dynamic_content.php   # Tarea programada
+│   │   ├── process_courses_task.php        # Tarea adhoc: generación de materiales (encolada desde launchtask.php)
+│   │   └── migrate_versions_task.php       # Tarea adhoc: importación de versiones (encolada desde launchtask.php)
 │   ├── external/                      # Servicios web AJAX
 │   │   ├── applyversion_external.php
 │   │   ├── createversion_external.php
@@ -163,7 +165,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 - **Limpieza de strings:** Existe una función propia `clean_string()` en `lib.php` que elimina acentos, espacios y caracteres especiales para nombres de versión.
 - **Versionado:** La versión del plugin se declara en `version.php`: `$plugin->version` (formato `YYYYMMDDXX`, se incrementa en cada despliegue para que Moodle aplique los cambios) y `$plugin->release` (texto libre que refleja el último tag git, p. ej. `v1.0.0`). Todas las vistas del plugin muestran un pie informativo discreto generado por `local_educaaragon_version_footer()` (`lib.php`), que deriva la fecha automáticamente de `$plugin->version`.
 - **Manipulación HTML:** Se utiliza extensivamente `DOMDocument` de PHP; es habitual ver `libxml_use_internal_errors(true)` para suprimir warnings de HTML malformado.
-- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron. Las ejecuciones manuales (web y CLI) generan además un documento de log en `<repo>/editions/_logs/` mediante `write_execution_log()` (`lib.php`); la clase `edition_versions_migrator` recoge su detalle en `get_logs()`.
+- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron. Las ejecuciones manuales (web —encoladas como tareas adhoc— y CLI) generan además un documento de log en `<repo>/logs/` mediante `write_execution_log()` (`lib.php`); la clase `edition_versions_migrator` recoge su detalle en `get_logs()`.
 
 ---
 
@@ -180,7 +182,7 @@ No existe un proceso de build personalizado (no hay `package.json`, `composer.js
      - Elegir si aplica a todos los módulos o a una categoría específica.
      - Activar la tarea programada cuando se desee que el cron procese los módulos automáticamente.
   3. Configurar la tarea programada en `Administración del sitio → Servidor → Tareas → Tareas Programadas`.
-  4. Opcionalmente, ejecutar la transformación de forma inmediata desde `Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas`, que permite lanzar la generación de materiales o la importación de versiones para todos los módulos, para un módulo concreto o para un centro completo (generando log en `editions/_logs/`).
+  4. Opcionalmente, lanzar la transformación desde `Administración del sitio → Cursos → Educa Aragón → Ejecución manual de tareas`, que permite encolar la generación de materiales o la importación de versiones para todos los módulos, para un módulo concreto o para un centro completo. Las ejecuciones se procesan en segundo plano (tareas adhoc, en la próxima ejecución del cron) y generan log en `logs/` de la raíz del repositorio.
 
 ---
 

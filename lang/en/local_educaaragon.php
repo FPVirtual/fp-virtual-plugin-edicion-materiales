@@ -76,7 +76,7 @@ $string['processlink'] = 'Resource link processing ';
 
 // Launch task
 $string['launchtask'] = 'Manual task execution';
-$string['launchtask_desc'] = 'Allows you to manually run the plugin tasks: editable material generation and material version import, for all modules, for a specific module or for a whole centre. Both generate a log document in the editions/_logs/ folder of the repository.';
+$string['launchtask_desc'] = 'Allows you to manually run the plugin tasks: editable material generation and material version import, for all modules, for a specific module or for a whole centre. Both are queued as background tasks and generate a log document in the logs/ folder at the materials repository root.';
 $string['launchtask_task'] = 'Task to run';
 $string['launchtask_task_generate'] = 'Editable material generation';
 $string['launchtask_task_generate_desc'] = 'Creates the editable and printable resources of the modules from their dynamic contents (SCORM/IMSCP).';
@@ -114,6 +114,10 @@ $string['launchtask_reprocess'] = 'Reprocess module';
 $string['launchtask_reprocess_confirm'] = 'The selected module has already been processed. To reprocess it, the previously generated resources will be removed. Do you want to continue?';
 $string['launchtask_course_notfound'] = 'The selected module was not found.';
 $string['launchtask_execution_finished'] = 'Execution finished.';
+$string['launchtask_all_none'] = 'There are no modules pending processing.';
+$string['launchtask_queued'] = 'Processing of {$a} queued: it will run in the background on the next cron execution. The log will be saved in the logs/ folder at the materials repository root.';
+$string['processcourses_task'] = 'Generate editable materials for';
+$string['migrateversionstask'] = 'Import material versions for courses';
 
 // Tables
 $string['processedcourses'] = 'Processed modules';

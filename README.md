@@ -125,7 +125,7 @@ Además de la ejecución programada, las tareas pueden lanzarse de forma manual 
 
 **Desde la página de ejecución manual del plugin:**
 
-En **Administración del sitio → Módulos → Educa Aragón → Ejecución manual de tareas** podrá ejecutar de forma inmediata cualquiera de las dos tareas del plugin:
+En **Administración del sitio → Módulos → Educa Aragón → Ejecución manual de tareas** podrá lanzar cualquiera de las dos tareas del plugin. **Ambas ejecuciones se encolan como tareas *adhoc* y se procesan en segundo plano en la próxima ejecución del cron** (no se ejecutan dentro de la petición web):
 
 *   **Generación de materiales editables** (`transform_dynamic_content`): crea los recursos editables e imprimibles de los módulos a partir de sus contenidos dinámicos (SCORM/IMSCP). Ámbitos:
     *   *Procesar todos los módulos*: todos los módulos no procesados según la configuración actual.
@@ -135,7 +135,7 @@ En **Administración del sitio → Módulos → Educa Aragón → Ejecución man
 
     > **Requisito:** la importación de versiones necesita que la generación de materiales editables se haya ejecutado correctamente con anterioridad sobre los módulos afectados, ya que empareja las versiones con los recursos existentes. La propia generación ya importa automáticamente las versiones al procesar un módulo por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*).
 
-Ambas ejecuciones muestran el resultado en pantalla y generan un documento de log en `<raíz_repo>/editions/_logs/`: `generacion_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`.
+Al encolar la ejecución se muestra un aviso de confirmación. El procesado se realiza en segundo plano y genera un documento de log en `<raíz_repo>/logs/`: `gener_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`.
 
 **Desde la interfaz web:**
 
@@ -293,7 +293,7 @@ php local/educaaragon/cli/migrate_edition_versions.php --center=50020125 --apply
 
 **Documento de log:**
 
-Cada ejecución del script genera automáticamente un documento de log en `<raíz_repo>/editions/_logs/` con todos los cambios realizados (emparejamientos de ids, versiones copiadas, omitidas o aplicadas, errores y módulos no encontrados, cada línea con su fecha y hora) y un **resumen final** con los totales de la ejecución. El nombre del fichero sigue el patrón `migracion_<centro|todos>_<fecha>[_dryrun].log`, por ejemplo `migracion_50020125_20260918_103000.log`.
+Cada ejecución del script genera automáticamente un documento de log en `<raíz_repo>/logs/` con todos los cambios realizados (emparejamientos de ids, versiones copiadas, omitidas o aplicadas, errores y módulos no encontrados, cada línea con su fecha y hora) y un **resumen final** con los totales de la ejecución. El nombre del fichero sigue el patrón `migracion_<centro|todos>_<fecha>[_dryrun].log`, por ejemplo `migracion_50020125_20260918_103000.log`.
 
 **Puntos importantes:**
 

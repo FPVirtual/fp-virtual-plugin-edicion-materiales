@@ -76,7 +76,7 @@ $string['processlink'] = 'Procesado de enlaces de recurso ';
 
 // Launch task
 $string['launchtask'] = 'Ejecución manual de tareas';
-$string['launchtask_desc'] = 'Permite ejecutar manualmente las tareas del plugin: la generación de materiales editables y la importación de versiones de materiales, para todos los módulos, para un módulo concreto o para un centro completo. Ambas generan un documento de log en la carpeta editions/_logs/ del repositorio.';
+$string['launchtask_desc'] = 'Permite ejecutar manualmente las tareas del plugin: la generación de materiales editables y la importación de versiones de materiales, para todos los módulos, para un módulo concreto o para un centro completo. Ambas se encolan como tareas en segundo plano y generan un documento de log en la carpeta logs/ de la raíz del repositorio.';
 $string['launchtask_task'] = 'Tarea a ejecutar';
 $string['launchtask_task_generate'] = 'Generación de materiales editables';
 $string['launchtask_task_generate_desc'] = 'Crea los recursos editables e imprimibles de los módulos a partir de sus contenidos dinámicos (SCORM/IMSCP).';
@@ -114,6 +114,10 @@ $string['launchtask_reprocess'] = 'Reprocesar módulo';
 $string['launchtask_reprocess_confirm'] = 'El módulo seleccionado ya ha sido procesado. Para volver a procesarlo se eliminarán los recursos generados anteriormente. ¿Desea continuar?';
 $string['launchtask_course_notfound'] = 'No se ha encontrado el módulo seleccionado.';
 $string['launchtask_execution_finished'] = 'Ejecución finalizada.';
+$string['launchtask_all_none'] = 'No hay módulos pendientes de procesar.';
+$string['launchtask_queued'] = 'Procesamiento de {$a} encolado: se ejecutará en segundo plano la próxima ejecución del cron. El log quedará guardado en la carpeta logs/ de la raíz del repositorio de materiales.';
+$string['processcourses_task'] = 'Generar materiales editables de cursos';
+$string['migrateversionstask'] = 'Importar versiones de materiales de cursos';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';

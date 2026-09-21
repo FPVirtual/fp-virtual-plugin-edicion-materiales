@@ -114,7 +114,7 @@ function encode_html_entities(string $text): string {
 }
 
 /**
- * Escribe un documento de log de ejecución en <repo>/editions/_logs/.
+ * Escribe un documento de log de ejecución en <repo>/logs/.
  *
  * @param string $prefix Prefijo del nombre del fichero (p. ej. 'generacion' o 'importacion').
  * @param string[] $lines Líneas del documento de log.
@@ -123,7 +123,7 @@ function encode_html_entities(string $text): string {
  */
 function write_execution_log(string $prefix, array $lines): string {
     $repository = get_repository();
-    $logsdir = rtrim($repository->get_rootpath(), '/') . '/' . \local_educaaragon\processcourse::EDITIONS_FOLDER . '/_logs/';
+    $logsdir = rtrim($repository->get_rootpath(), '/') . '/logs/';
     if (!is_dir($logsdir) && !mkdir($logsdir, 0775, true) && !is_dir($logsdir)) {
         $error = error_get_last();
         throw new RuntimeException('No se pudo crear la carpeta de logs: ' . $logsdir

@@ -23,7 +23,8 @@
  * - Material version import (edition_versions_migrator), which pairs edited
  *   versions stored under old resourceids with the current course resources
  *   and therefore requires the generation task to have run first.
- * Both tasks generate a log document in <repo>/editions/_logs/.
+ * Both executions are queued as adhoc tasks and run in the background on the
+ * next cron execution, generating a log document in <repo>/logs/.
  *
  * @package    local_educaaragon
  * @author     3iPunt <https://www.tresipunt.com/>
@@ -32,15 +33,13 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
-global $CFG, $DB, $OUTPUT, $PAGE;
+global $CFG, $DB, $OUTPUT, $PAGE, $USER;
 
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/local/educaaragon/lib.php');
-require_once($CFG->dirroot . '/local/educaaragon/classes/task/transform_dynamic_content.php');
-require_once($CFG->dirroot . '/local/educaaragon/classes/edition_versions_migrator.php');
 
-use local_educaaragon\edition_versions_migrator;
-use local_educaaragon\task\transform_dynamic_content;
+use local_educaaragon\task\migrate_versions_task;
+use local_educaaragon\task\process_courses_task;
 
 require_login();
 
@@ -68,15 +67,27 @@ $PAGE->set_context($context);
 $PAGE->set_title(get_string('launchtask', 'local_educaaragon'));
 $PAGE->set_heading(get_string('launchtask', 'local_educaaragon'));
 
-$task = new transform_dynamic_content();
 $output = '';
-$executionoutput = '';
 $showform = true;
-$logfile = '';
 
-$loglines = [];
-$log = function(string $message) use (&$loglines): void {
-    $loglines[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
+/**
+ * Queues an adhoc task that generates the editable materials of the given courses.
+ *
+ * @param int[] $courseids Ids of the courses to process.
+ * @param string $scopelabel Clean label used in the log file name.
+ * @param string $scopedesc Human readable description of the scope.
+ * @return void
+ */
+$queuegenerate = function(array $courseids, string $scopelabel, string $scopedesc) use ($USER): void {
+    $task = new process_courses_task();
+    $task->set_custom_data((object)[
+        'course' => $courseids,
+        'scopelabel' => $scopelabel,
+        'scopedesc' => $scopedesc,
+    ]);
+    $task->set_next_run_time(time());
+    $task->set_userid($USER->id);
+    \core\task\manager::queue_adhoc_task($task);
 };
 
 // Validate repository configuration before allowing execution.
@@ -94,14 +105,29 @@ if ($repositoryid === false) {
 if ($tasktype === 'generate') {
     if ($scope === 'all') {
         require_sesskey();
-        raise_memory_limit(MEMORY_EXTRA);
-        core_php_time_limit::raise(0);
 
-        ob_start();
-        $task->run(true);
-        $executionoutput = ob_get_clean();
+        // Pending courses, with the same exclusion criteria as the scheduled task.
+        $allcourses = get_courses();
+        unset($allcourses[1]);
+        $toprocess = [];
+        foreach ($allcourses as $allcourse) {
+            $processed = $DB->get_record('local_educa_processedcourses', ['courseid' => $allcourse->id], 'processed');
+            if ($processed !== false && (int)$processed->processed === 1) {
+                continue;
+            }
+            $toprocess[] = $allcourse;
+        }
 
-        $output .= $OUTPUT->notification(get_string('launchtask_execution_finished', 'local_educaaragon'), 'success');
+        if (empty($toprocess)) {
+            $output .= $OUTPUT->notification(get_string('launchtask_all_none', 'local_educaaragon'), 'info');
+        } else {
+            $courseids = array_map(function($allcourse) {
+                return (int)$allcourse->id;
+            }, $toprocess);
+            $scopedesc = get_string('launchtask_all', 'local_educaaragon');
+            $queuegenerate($courseids, 'global', $scopedesc);
+            $output .= $OUTPUT->notification(get_string('launchtask_queued', 'local_educaaragon', $scopedesc), 'success');
+        }
     } else if ($scope === 'single' && $courseid > 0) {
         require_sesskey();
         $course = $DB->get_record('course', ['id' => $courseid]);
@@ -126,14 +152,13 @@ if ($tasktype === 'generate') {
                 $output .= $OUTPUT->single_button($confirmurl, get_string('launchtask_reprocess', 'local_educaaragon'), 'post');
                 $output .= html_writer::end_div();
             } else {
-                raise_memory_limit(MEMORY_EXTRA);
-                core_php_time_limit::raise(0);
-
-                ob_start();
-                $task->process_single_course($course, true);
-                $executionoutput = ob_get_clean();
-
-                $output .= $OUTPUT->notification(get_string('launchtask_execution_finished', 'local_educaaragon'), 'success');
+                $queuegenerate(
+                    [$course->id],
+                    clean_string($course->shortname),
+                    $course->shortname . ' (id=' . $course->id . ')'
+                );
+                $output .= $OUTPUT->notification(
+                    get_string('launchtask_queued', 'local_educaaragon', $course->shortname), 'success');
             }
         }
     } else if ($scope === 'center') {
@@ -141,9 +166,6 @@ if ($tasktype === 'generate') {
         if ($center === '') {
             $output .= $OUTPUT->notification(get_string('launchtask_center_empty', 'local_educaaragon'), 'error');
         } else {
-            raise_memory_limit(MEMORY_EXTRA);
-            core_php_time_limit::raise(0);
-
             // Courses of the center: first token of the shortname matches the code.
             $where = $DB->sql_like('shortname', ':pattern') . ' OR shortname = :exact';
             $centercourses = $DB->get_records_select('course', $where,
@@ -162,45 +184,18 @@ if ($tasktype === 'generate') {
             if (empty($toprocess)) {
                 $output .= $OUTPUT->notification(get_string('launchtask_center_none', 'local_educaaragon'), 'warning');
             } else {
-                ob_start();
-                foreach ($toprocess as $toprocesscourse) {
-                    $task->process_single_course($toprocesscourse, true);
-                }
-                $executionoutput = ob_get_clean();
-
-                $output .= $OUTPUT->notification(get_string('launchtask_execution_finished', 'local_educaaragon'), 'success');
+                $courseids = array_map(function($centercourse) {
+                    return (int)$centercourse->id;
+                }, $toprocess);
+                $scopedesc = get_string('launchtask_center', 'local_educaaragon') . ': ' . $center;
+                $queuegenerate($courseids, clean_string($center), $scopedesc);
+                $output .= $OUTPUT->notification(get_string('launchtask_queued', 'local_educaaragon', $scopedesc), 'success');
             }
         }
     } else {
         $output .= $OUTPUT->notification(get_string('launchtask_scope_missing', 'local_educaaragon'), 'error');
     }
 
-    // Log document of the generation run.
-    if ($executionoutput !== '') {
-        if ($scope === 'center') {
-            $scopedesc = get_string('launchtask_center', 'local_educaaragon') . ': ' . $center;
-            $scopelabel = clean_string($center);
-        } else if ($scope === 'single') {
-            $runcourse = $DB->get_record('course', ['id' => $courseid], 'id, shortname');
-            $scopedesc = $runcourse ? $runcourse->shortname . ' (id=' . $runcourse->id . ')' : $scope;
-            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'modulo';
-        } else {
-            $scopedesc = get_string('launchtask_all', 'local_educaaragon');
-            $scopelabel = 'global';
-        }
-
-        $log('============================================================');
-        $log(' GENERACION DE MATERIALES EDITABLES');
-        $log(' Fecha:  ' . date('Y-m-d H:i:s'));
-        $log(' Ambito: ' . $scopedesc);
-        $log('============================================================');
-        $loglines = array_merge($loglines, explode("\n", $executionoutput));
-        try {
-            $logfile = write_execution_log('generacion_' . $scopelabel, $loglines);
-        } catch (Exception $e) {
-            $output .= $OUTPUT->notification($e->getMessage(), 'error');
-        }
-    }
 // ============================================================================
 // IMPORTACIÓN DE VERSIONES DE MATERIALES
 // ============================================================================
@@ -211,8 +206,6 @@ if ($tasktype === 'generate') {
         $output .= $OUTPUT->notification(get_string('launchtask_center_empty', 'local_educaaragon'), 'error');
     } else {
         require_sesskey();
-        raise_memory_limit(MEMORY_EXTRA);
-        core_php_time_limit::raise(0);
 
         $repository = get_repository();
         $editionspath = rtrim($repository->get_rootpath(), '/') . '/editions/';
@@ -251,79 +244,46 @@ if ($tasktype === 'generate') {
             }
         }
 
-        $totalstats = [
-            'migratedresources' => 0,
-            'migratedversions' => 0,
-            'appliedversions' => 0,
-            'skipped' => 0,
-            'errors' => 0,
-        ];
-        $processedcourses = 0;
-
-        if ($scope === 'center') {
-            $scopedesc = get_string('launchtask_center', 'local_educaaragon') . ': ' . $center;
-            $scopelabel = clean_string($center);
-        } else if ($scope === 'single') {
-            $runcourse = $DB->get_record('course', ['id' => $courseid], 'id, shortname');
-            $scopedesc = $runcourse ? $runcourse->shortname . ' (id=' . $runcourse->id . ')' : $scope;
-            $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'modulo';
-        } else {
-            $scopedesc = get_string('launchtask_all', 'local_educaaragon');
-            $scopelabel = 'global';
-        }
-
-        $log('============================================================');
-        $log(' IMPORTACION DE VERSIONES DE MATERIALES');
-        $log(' Fecha:    ' . date('Y-m-d H:i:s'));
-        $log(' Ambito:   ' . $scopedesc);
-        $log(' Opciones: ' . trim(($dryrun ? 'simulacion ' : '')
-            . ($applyversion !== '' ? 'apply-version=' . $applyversion . ' ' : '')
-            . ($includeoriginal ? 'include-original' : '')));
-        $log('============================================================');
-
-        try {
-            ob_start();
-            try {
-                foreach ($migrationcourses as $key => $migrationcourse) {
-                    if ($migrationcourse === null) {
-                        $notfoundshortname = substr((string)$key, strlen('notfound:'));
-                        $log(get_string('launchtask_migration_coursenotfound', 'local_educaaragon', $notfoundshortname));
-                        $totalstats['errors']++;
-                        continue;
-                    }
-                    $migrator = new edition_versions_migrator($repository, $dryrun, $applyversion, $includeoriginal, true);
-                    $coursestats = $migrator->migrate_course($migrationcourse);
-                    $loglines = array_merge($loglines, $migrator->get_logs());
-                    if ($coursestats['migratedresources'] === 0) {
-                        $log('Nada que migrar para este módulo.');
-                    } else {
-                        $processedcourses++;
-                    }
-                    foreach (array_keys($totalstats) as $statkey) {
-                        $totalstats[$statkey] += $coursestats[$statkey];
-                    }
-                }
-                $log('');
-                $log(get_string('importededitions_result', 'local_educaaragon', (object)[
-                    'resources' => $totalstats['migratedresources'],
-                    'versions' => $totalstats['migratedversions'],
-                    'applied' => $totalstats['appliedversions'],
-                    'skipped' => $totalstats['skipped'],
-                    'errors' => $totalstats['errors'],
-                ]));
-                if ($dryrun) {
-                    $log('Simulacion (dry-run): no se realizo ningun cambio.');
-                }
-            } finally {
-                // Discard the mtrace echo of the migrator, the log lines are shown instead.
-                ob_end_clean();
+        if (!empty($migrationcourses)) {
+            if ($scope === 'center') {
+                $scopedesc = get_string('launchtask_center', 'local_educaaragon') . ': ' . $center;
+                $scopelabel = clean_string($center);
+            } else if ($scope === 'single') {
+                $runcourse = $DB->get_record('course', ['id' => $courseid], 'id, shortname');
+                $scopedesc = $runcourse ? $runcourse->shortname . ' (id=' . $runcourse->id . ')' : $scope;
+                $scopelabel = $runcourse ? clean_string($runcourse->shortname) : 'modulo';
+            } else {
+                $scopedesc = get_string('launchtask_all', 'local_educaaragon');
+                $scopelabel = 'global';
             }
 
-            $executionoutput = implode("\n", $loglines);
-            $logfile = write_execution_log('importacion_' . $scopelabel . ($dryrun ? '_dryrun' : ''), $loglines);
-            $output .= $OUTPUT->notification(get_string('launchtask_execution_finished', 'local_educaaragon'), 'success');
-        } catch (Exception $e) {
-            $output .= $OUTPUT->notification($e->getMessage(), 'error');
+            // Separate the course ids from the shortnames without a matching course.
+            $courseids = [];
+            $notfound = [];
+            foreach ($migrationcourses as $key => $migrationcourse) {
+                if ($migrationcourse === null) {
+                    $notfound[] = substr((string)$key, strlen('notfound:'));
+                    continue;
+                }
+                $courseids[] = (int)$migrationcourse->id;
+            }
+
+            $task = new migrate_versions_task();
+            $task->set_custom_data((object)[
+                'courseids' => $courseids,
+                'notfound' => $notfound,
+                'dryrun' => $dryrun,
+                'applyversion' => $applyversion,
+                'includeoriginal' => $includeoriginal,
+                'scopelabel' => $scopelabel,
+                'scopedesc' => $scopedesc,
+            ]);
+            $task->set_next_run_time(time());
+            $task->set_userid($USER->id);
+            \core\task\manager::queue_adhoc_task($task);
+
+            $output .= $OUTPUT->notification(
+                get_string('launchtask_queued', 'local_educaaragon', $scopedesc), 'success');
         }
     }
 }
@@ -340,17 +300,6 @@ echo html_writer::tag('p', get_string('launchtask_desc', 'local_educaaragon'));
 
 if (!empty($output)) {
     echo $output;
-}
-
-if (!empty($logfile)) {
-    echo $OUTPUT->notification(get_string('launchtask_logfile', 'local_educaaragon') . ' ' . $logfile, 'info');
-}
-
-if (!empty($executionoutput)) {
-    echo html_writer::start_div('mt-3');
-    echo html_writer::tag('h4', get_string('launchtask_result', 'local_educaaragon'));
-    echo html_writer::tag('pre', s($executionoutput), ['class' => 'pre-scrollable border p-2 bg-light']);
-    echo html_writer::end_div();
 }
 
 if ($showform) {
