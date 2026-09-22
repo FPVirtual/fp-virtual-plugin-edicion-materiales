@@ -119,6 +119,13 @@ $string['launchtask_queued'] = 'Procesamiento de {$a} encolado: se ejecutará en
 $string['processcourses_task'] = 'Generar materiales editables de cursos';
 $string['migrateversionstask'] = 'Importar versiones de materiales de cursos';
 $string['errorprocessingnotwritable'] = 'La carpeta fileprocessing no es escribible por el usuario del web: {$a}';
+$string['tasksummary_scope'] = 'Cursos en el ámbito: {$a}';
+$string['tasksummary_ok'] = 'Procesados correctamente: {$a}';
+$string['tasksummary_failed'] = 'Fallidos: {$a}';
+$string['tasksummary_failedcourse'] = '{$a->shortname} (id={$a->courseid}): {$a->error}';
+$string['tasksummary_elapsed'] = 'Tiempo total de ejecución: {$a}';
+$string['tasksummary_peakmemory'] = 'Memoria pico utilizada: {$a}';
+$string['tasksummary_coursenotfound'] = 'Módulo no encontrado (id={$a}). Se omite.';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';

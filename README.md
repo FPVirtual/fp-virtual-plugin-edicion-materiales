@@ -211,6 +211,8 @@ Cuando la tarea **"Transformar contenidos dinámicos"** procesa un módulo, real
 1.  Copia los archivos a la carpeta temporal `fileprocessing/` y los unifica en un único `index.html`: elimina la navegación (`siteNav` y paginaciones superior e inferior), inserta el contenido de cada página enlazada dentro del documento principal, y añade reglas CSS de impresión (saltos de página) junto con metadatos de no-caché.
 2.  Crea un segundo `mod_resource` llamado `<nombre> (imprimible)` con el resultado unificado, colocado justo después del recurso editable.
 
+> **Visibilidad:** ambos recursos (editable e imprimible) se generan **ocultos para los estudiantes**. La edición y aplicación de versiones no cambia su visibilidad; el profesorado puede mostrarlos manualmente cuando lo considere oportuno.
+
 *Versión original:*
 
 1.  Crea en el repositorio la carpeta `editions/<shortname_módulo>/<resourceid>/original/` con una copia de los archivos del recurso editable (si no existía ya).
@@ -218,7 +220,7 @@ Cuando la tarea **"Transformar contenidos dinámicos"** procesa un módulo, real
 
 **5. Modo reconocimiento (módulos ya procesados)**
 
-La tarea no vuelve a crear recursos: únicamente recorre los recursos editables registrados del módulo y se asegura de que cada uno disponga de su carpeta `original` en `editions/<shortname_módulo>/<resourceid>/`.
+La tarea no vuelve a crear recursos: únicamente recorre los recursos editables registrados del módulo, se asegura de que cada uno disponga de su carpeta `original` en `editions/<shortname_módulo>/<resourceid>/` y re-fuerza la ocultación de los recursos generados (editable e imprimible) por si alguno se hubiera quedado visible.
 
 **6. Análisis de enlaces**
 

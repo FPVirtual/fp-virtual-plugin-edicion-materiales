@@ -69,6 +69,12 @@ class transform_dynamic_content extends scheduled_task {
     /** @var bool Whether the course currently being processed is processed for the first time. */
     private $firstprocessing = false;
 
+    /** @var string[] Trace lines collected during the processing of the current course. */
+    private $tracelines = [];
+
+    /** @var string|null Error message of the last failed course, null if it succeeded. */
+    private $lasterror = null;
+
     /**
      * Return the task's name as shown in admin screens.
      *
@@ -141,6 +147,38 @@ class transform_dynamic_content extends scheduled_task {
     }
 
     /**
+     * Returns the trace lines collected during the last process_single_course() call.
+     * Under CLI, mtrace() writes to STDOUT and cannot be captured with ob_start(),
+     * so the log documents must be built from this collector instead.
+     *
+     * @return string[]
+     */
+    public function get_trace_lines(): array {
+        return $this->tracelines;
+    }
+
+    /**
+     * Returns the error message of the last failed course, or null when the
+     * last process_single_course() call succeeded.
+     *
+     * @return string|null
+     */
+    public function get_last_error(): ?string {
+        return $this->lasterror;
+    }
+
+    /**
+     * Emits a trace message to the cron output and collects it for the execution log.
+     *
+     * @param string $message
+     * @return void
+     */
+    private function trace(string $message): void {
+        mtrace($message);
+        $this->tracelines[] = $message;
+    }
+
+    /**
      * Initializes the repository and resource generator needed for processing.
      *
      * @return void
@@ -177,14 +215,16 @@ class transform_dynamic_content extends scheduled_task {
         global $CFG;
         // Loaded lazily: at file scope it would pull in externallib.php and break PHPUnit site installs.
         require_once($CFG->dirroot . '/local/educaaragon/classes/external/reprocessing_external.php');
-        mtrace(PHP_EOL . get_string('processcourse', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
+        $this->tracelines = [];
+        $this->lasterror = null;
+        $this->trace(PHP_EOL . get_string('processcourse', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
         try {
             $start = microtime(true);
             $this->procces_course($course, $this->repository, $this->resourcegenerator, $this->usercontext);
-            mtrace(get_string('processresourcelinks', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
+            $this->trace(get_string('processresourcelinks', 'local_educaaragon', ['shortname' => $course->shortname, 'courseid' => $course->id]));
             $this->procces_resource_links($course);
             $this->import_edition_versions($course);
-            mtrace( get_string('course_processed', 'local_educaaragon') . round(microtime(true) - $start, 2) . 's' . PHP_EOL
+            $this->trace( get_string('course_processed', 'local_educaaragon') . round(microtime(true) - $start, 2) . 's' . PHP_EOL
                 . get_string('memory_used', 'local_educaaragon') . display_size(memory_get_usage())
             );
             return true;
@@ -194,13 +234,16 @@ class transform_dynamic_content extends scheduled_task {
             if ($e->getMessage() === 'error/invalidpersistenterror') {
                 reprocessing_external::reprocessing_course($course->id);
                 $manage_logs->update_proccesed_course(false, 'error/invalidpersistenterror');
+                $this->lasterror = 'error/invalidpersistenterror';
             } else if ($e->getMessage() === 'error/Invalid file requested.') {
                 reprocessing_external::reprocessing_course($course->id);
                 $manage_logs->update_proccesed_course(false, 'error/invalidfilerequested');
+                $this->lasterror = 'error/invalidfilerequested';
             } else {
-                $manage_logs->update_proccesed_course(false, substr(get_class($e) . ': ' . $e->getMessage(), 0, 500));
+                $this->lasterror = substr(get_class($e) . ': ' . $e->getMessage(), 0, 500);
+                $manage_logs->update_proccesed_course(false, $this->lasterror);
             }
-            mtrace(get_string(
+            $this->trace(get_string(
                 'errorprocesscourse_desc',
                 'local_educaaragon',
                 ['course' => $course->shortname, 'error' => $e->getMessage()]
@@ -211,8 +254,9 @@ class transform_dynamic_content extends scheduled_task {
             // the failure cause is recorded instead of aborting the run without trace.
             $manage_logs = new manage_logs();
             $manage_logs->create_processed_course($course->id);
-            $manage_logs->update_proccesed_course(false, substr(get_class($e) . ': ' . $e->getMessage(), 0, 500));
-            mtrace(get_string(
+            $this->lasterror = substr(get_class($e) . ': ' . $e->getMessage(), 0, 500);
+            $manage_logs->update_proccesed_course(false, $this->lasterror);
+            $this->trace(get_string(
                 'errorprocesscourse_desc',
                 'local_educaaragon',
                 ['course' => $course->shortname, 'error' => $e->getMessage()]
@@ -292,7 +336,7 @@ class transform_dynamic_content extends scheduled_task {
         $editionsfolder = $processcourse->get_editions_folder();
         $hasexisting = $processcourse->has_existing_editable_resources();
         if (!empty($editionsfolder) && $hasexisting) {
-            mtrace(get_string('editionsfolder_found', 'local_educaaragon', $course->shortname));
+            $this->trace(get_string('editionsfolder_found', 'local_educaaragon', $course->shortname));
             $processcourse->recognize_existing_resources();
             $manage_logs->update_proccesed_course(true, 'correctly_processed');
             return;
@@ -303,7 +347,7 @@ class transform_dynamic_content extends scheduled_task {
         /** @var cm_info[] $dynamiccontent */
         $dynamiccontent = $processcourse->get_scorms_and_imscp();
         if (count($dynamiccontent) > 0) {
-            mtrace(get_string('dynamiccontent_found', 'local_educaaragon', count($dynamiccontent)));
+            $this->trace(get_string('dynamiccontent_found', 'local_educaaragon', count($dynamiccontent)));
             if (count($dynamiccontent) !== count($contentsoffolder)) {
                 $processcourse->create_resources_without_association($contentsoffolder);
                 $manage_logs->update_proccesed_course(true, 'correctly_processed_needassociation');
@@ -342,9 +386,9 @@ class transform_dynamic_content extends scheduled_task {
         if (!$migrator->has_editions_for_course($course->shortname)) {
             return;
         }
-        mtrace(get_string('importededitions_start', 'local_educaaragon', $course->shortname));
+        $this->trace(get_string('importededitions_start', 'local_educaaragon', $course->shortname));
         $stats = $migrator->migrate_course($course);
-        mtrace(get_string('importededitions_result', 'local_educaaragon', [
+        $this->trace(get_string('importededitions_result', 'local_educaaragon', [
             'resources' => $stats['migratedresources'],
             'versions' => $stats['migratedversions'],
             'applied' => $stats['appliedversions'],
@@ -373,14 +417,14 @@ class transform_dynamic_content extends scheduled_task {
                     $manageeditable = new manage_editable_resource($cminfo, 'original');
                     $manageeditable->process_resource_links(true);
                 } catch (Exception $e) {
-                    mtrace(get_string('processlink_error', 'local_educaaragon', [
+                    $this->trace(get_string('processlink_error', 'local_educaaragon', [
                         'resourceid' => $resource->resourceid,
                         'error' => $e->getMessage(),
                     ]));
                     continue;
                 }
                 $i++;
-                mtrace(
+                $this->trace(
                     get_string('processlink', 'local_educaaragon') .
                     $i . '/' . count($resources) . ' -> ' . round(microtime(true) - $start, 2) . 's'
                 );

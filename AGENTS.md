@@ -130,7 +130,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 4. Si no existe `editions/<shortname_módulo>/`, es el primer procesado. Identifica los módulos SCORM e IMSCP del módulo (excepto sección 0) y crea, para cada contenido, dos recursos de tipo `mod_resource`:
    - **Editable:** recurso HTML estándar con todos los archivos de `recursos-editables/<shortname_módulo>/<orden>/`.
    - **Imprimible:** recurso HTML donde se unifican todos los archivos `.html` en un único `index.html`, eliminando navegación y añadiendo CSS de impresión.
-5. Oculta los módulos SCORM/IMSCP originales, registra todo en `local_educa_editables` y crea las carpetas `editions/<shortname_módulo>/<resourceid>/original/` con el contenido de cada recurso editable.
+5. Oculta los módulos SCORM/IMSCP originales y crea los recursos editables e imprimibles **ocultos para los estudiantes** (`visible = 0`), registra todo en `local_educa_editables` y crea las carpetas `editions/<shortname_módulo>/<resourceid>/original/` con el contenido de cada recurso editable. `recognize_existing_resources()` re-fuerza la ocultación de los recursos ya generados al reprocesar un módulo.
 
 ### 5.2 Edición de contenidos
 1. El usuario accede a la página `editables.php` desde el menú del módulo (solo si tiene la capacidad `local/educaaragon:editresources`).
@@ -165,7 +165,7 @@ Cada tabla tiene su clase `persistent` correspondiente en `classes/educa_*.php`.
 - **Limpieza de strings:** Existe una función propia `clean_string()` en `lib.php` que elimina acentos, espacios y caracteres especiales para nombres de versión.
 - **Versionado:** La versión del plugin se declara en `version.php`: `$plugin->version` (formato `YYYYMMDDXX`, se incrementa en cada despliegue para que Moodle aplique los cambios) y `$plugin->release` (texto libre que refleja el último tag git, p. ej. `v1.0.0`). Todas las vistas del plugin muestran un pie informativo discreto generado por `local_educaaragon_version_footer()` (`lib.php`), que deriva la fecha automáticamente de `$plugin->version`.
 - **Manipulación HTML:** Se utiliza extensivamente `DOMDocument` de PHP; es habitual ver `libxml_use_internal_errors(true)` para suprimir warnings de HTML malformado.
-- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron. Las ejecuciones manuales (web —encoladas como tareas adhoc— y CLI) generan además un documento de log en `<repo>/logs/` mediante `write_execution_log()` (`lib.php`); la clase `edition_versions_migrator` recoge su detalle en `get_logs()`.
+- **Logging:** La tarea programada usa `mtrace()` para imprimir por consola durante la ejecución del cron. Las ejecuciones manuales (web —encoladas como tareas adhoc— y CLI) generan además un documento de log en `<repo>/logs/` mediante `write_execution_log()` (`lib.php`); la clase `edition_versions_migrator` recoge su detalle en `get_logs()`. Ojo: bajo CLI, `mtrace()` escribe con `fwrite(STDOUT)` y **no** puede capturarse con `ob_start()`; por eso `transform_dynamic_content` colecciona sus líneas con un colector interno (`trace()` + `get_trace_lines()` / `get_last_error()`) que las tareas adhoc usan para construir el log.
 
 ---
 

@@ -317,6 +317,23 @@ class processcourse {
      */
     public function recognize_existing_resources(): void {
         global $DB;
+        // Ensure the generated resources (editable and printable) stay hidden from students.
+        $generatedresources = $DB->get_records('local_educa_editables', ['courseid' => $this->course->id], '', 'id, resourceid');
+        $visibilitychanged = false;
+        foreach ($generatedresources as $generatedresource) {
+            $cm = $DB->get_record('course_modules', [
+                'instance' => $generatedresource->resourceid,
+                'course' => $this->course->id,
+                'module' => $this->get_resource_module_id(),
+            ], 'id, visible');
+            if ($cm && (int)$cm->visible !== 0) {
+                $DB->set_field('course_modules', 'visible', 0, ['id' => $cm->id]);
+                $visibilitychanged = true;
+            }
+        }
+        if ($visibilitychanged) {
+            rebuild_course_cache($this->course->id);
+        }
         $editables = $DB->get_records('local_educa_editables', [
             'courseid' => $this->course->id,
             'type' => 'editable',
@@ -389,6 +406,7 @@ class processcourse {
             'completion' => COMPLETION_TRACKING_NONE,
             'completionview' => COMPLETION_VIEW_NOT_REQUIRED,
             'display' => RESOURCELIB_DISPLAY_OPEN,
+            'visible' => 0,
         ];
         $options = ['section' => $cm->sectionnum];
         $files = $this->repository->get_listing($folder['path'])['list'];
@@ -501,6 +519,7 @@ class processcourse {
             'completion' => COMPLETION_TRACKING_NONE,
             'completionview' => COMPLETION_VIEW_NOT_REQUIRED,
             'display' => RESOURCELIB_DISPLAY_OPEN,
+            'visible' => 0,
         ];
         $options = ['section' => $cm->sectionnum];
         $files = scandir($this->processingroute);
@@ -577,6 +596,7 @@ class processcourse {
             'completion' => COMPLETION_TRACKING_NONE,
             'completionview' => COMPLETION_VIEW_NOT_REQUIRED,
             'display' => RESOURCELIB_DISPLAY_OPEN,
+            'visible' => 0,
         ];
         $options = ['section' => $section->section];
         $files = $this->repository->get_listing($folder['path'])['list'];

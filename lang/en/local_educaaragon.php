@@ -119,6 +119,13 @@ $string['launchtask_queued'] = 'Processing of {$a} queued: it will run in the ba
 $string['processcourses_task'] = 'Generate editable materials for';
 $string['migrateversionstask'] = 'Import material versions for courses';
 $string['errorprocessingnotwritable'] = 'The fileprocessing folder is not writable by the web server user: {$a}';
+$string['tasksummary_scope'] = 'Courses in scope: {$a}';
+$string['tasksummary_ok'] = 'Successfully processed: {$a}';
+$string['tasksummary_failed'] = 'Failed: {$a}';
+$string['tasksummary_failedcourse'] = '{$a->shortname} (id={$a->courseid}): {$a->error}';
+$string['tasksummary_elapsed'] = 'Total execution time: {$a}';
+$string['tasksummary_peakmemory'] = 'Peak memory used: {$a}';
+$string['tasksummary_coursenotfound'] = 'Module not found (id={$a}). Skipped.';
 
 // Tables
 $string['processedcourses'] = 'Processed modules';

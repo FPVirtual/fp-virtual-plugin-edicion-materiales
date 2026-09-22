@@ -81,18 +81,47 @@ class process_courses_task extends adhoc_task {
         $log(' Ambito: ' . $scopedesc);
         $log('============================================================');
 
+        // NOTE: the per-course detail cannot be captured with ob_start(): under CLI
+        // mtrace() writes to STDOUT (fwrite), which bypasses the output buffers.
+        // transform_dynamic_content collects its trace lines explicitly instead.
+        $start = microtime(true);
+        $processed = 0;
+        $failed = [];
         foreach ($courseids as $courseid) {
             $course = $DB->get_record('course', ['id' => $courseid]);
             if (!$course) {
-                $log('Modulo no encontrado (id=' . $courseid . '). Se omite.');
+                $error = get_string('tasksummary_coursenotfound', 'local_educaaragon', $courseid);
+                $log($error);
+                $failed[] = ['shortname' => 'id=' . $courseid, 'courseid' => $courseid, 'error' => $error];
                 continue;
             }
             $task = new transform_dynamic_content();
-            ob_start();
             $task->process_single_course($course, true);
-            $courseoutput = ob_get_clean();
-            $loglines = array_merge($loglines, explode("\n", $courseoutput));
+            $loglines = array_merge($loglines, $task->get_trace_lines());
+            $courseerror = $task->get_last_error();
+            if ($courseerror !== null) {
+                $failed[] = ['shortname' => $course->shortname, 'courseid' => $course->id, 'error' => $courseerror];
+            } else {
+                $processed++;
+            }
         }
+
+        $summary = [];
+        $summary[] = get_string('tasksummary_scope', 'local_educaaragon', count($courseids));
+        $summary[] = get_string('tasksummary_ok', 'local_educaaragon', $processed);
+        $summary[] = get_string('tasksummary_failed', 'local_educaaragon', count($failed));
+        foreach ($failed as $failedcourse) {
+            $summary[] = get_string('tasksummary_failedcourse', 'local_educaaragon', (object)$failedcourse);
+        }
+        $summary[] = get_string('tasksummary_elapsed', 'local_educaaragon', round(microtime(true) - $start, 2) . 's');
+        $summary[] = get_string('tasksummary_peakmemory', 'local_educaaragon', display_size(memory_get_peak_usage(true)));
+
+        // The summary goes to the log document and to the cron output (docker logs).
+        $log('');
+        foreach ($summary as $summaryline) {
+            $log($summaryline);
+        }
+        mtrace(PHP_EOL . get_string('processcourses_task', 'local_educaaragon') . PHP_EOL . implode(PHP_EOL, $summary));
 
         try {
             write_execution_log('gener_' . $scopelabel, $loglines);

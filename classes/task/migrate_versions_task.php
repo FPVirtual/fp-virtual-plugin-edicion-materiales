@@ -100,6 +100,8 @@ class migrate_versions_task extends adhoc_task {
             . ($includeoriginal ? 'include-original' : '')));
         $log('============================================================');
 
+        $start = microtime(true);
+
         foreach ($notfound as $notfoundshortname) {
             $log(get_string('launchtask_migration_coursenotfound', 'local_educaaragon', $notfoundshortname));
             $totalstats['errors']++;
@@ -140,6 +142,18 @@ class migrate_versions_task extends adhoc_task {
         if ($dryrun) {
             $log('Simulacion (dry-run): no se realizo ningun cambio.');
         }
+
+        $summary = [];
+        $summary[] = get_string('tasksummary_scope', 'local_educaaragon', count($courseids) + count($notfound));
+        $summary[] = get_string('tasksummary_elapsed', 'local_educaaragon', round(microtime(true) - $start, 2) . 's');
+        $summary[] = get_string('tasksummary_peakmemory', 'local_educaaragon', display_size(memory_get_peak_usage(true)));
+
+        // The summary goes to the log document and to the cron output (docker logs).
+        $log('');
+        foreach ($summary as $summaryline) {
+            $log($summaryline);
+        }
+        mtrace(PHP_EOL . get_string('migrateversionstask', 'local_educaaragon') . PHP_EOL . implode(PHP_EOL, $summary));
 
         try {
             write_execution_log('importacion_' . $scopelabel . ($dryrun ? '_dryrun' : ''), $loglines);
