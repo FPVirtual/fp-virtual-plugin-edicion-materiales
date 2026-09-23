@@ -137,7 +137,7 @@ En **Administración del sitio → Módulos → Educa Aragón → Ejecución man
 
     > **Requisito:** la importación de versiones necesita que la generación de materiales editables se haya ejecutado correctamente con anterioridad sobre los módulos afectados, ya que empareja las versiones con los recursos existentes. La propia generación ya importa automáticamente las versiones al procesar un módulo por primera vez (ver paso 7 de *Funcionamiento del proceso de importación*).
 
-Al encolar la ejecución se muestra un aviso de confirmación. El procesado se realiza en segundo plano y genera un documento de log en `<raíz_repo>/logs/`: `gener_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`.
+Al encolar la ejecución se muestra un aviso de confirmación. El procesado se realiza en segundo plano y genera un documento de log en `<raíz_repo>/logs/`: `gener_<ámbito>_<fecha>.log` o `importacion_<ámbito>_<fecha>[_dryrun].log`. Estos documentos pueden consultarse y descargarse desde **Administración del sitio → Cursos → Educa Aragón → Logs de ejecución** (`logs.php`).
 
 **Desde la interfaz web:**
 

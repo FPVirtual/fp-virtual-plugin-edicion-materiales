@@ -84,6 +84,9 @@ if ($hassiteconfig) {
 $ADMIN->add('local_educaaragon', new admin_externalpage('launchtask',
     get_string('launchtask', 'local_educaaragon'),
     "$CFG->wwwroot/local/educaaragon/launchtask.php", 'local/educaaragon:manageall', false, $context));
+$ADMIN->add('local_educaaragon', new admin_externalpage('executionlogs',
+    get_string('logs', 'local_educaaragon'),
+    "$CFG->wwwroot/local/educaaragon/logs.php", 'local/educaaragon:manageall', false, $context));
 $ADMIN->add('local_educaaragon', new admin_externalpage('processedcourses',
     get_string('processedcourses', 'local_educaaragon'),
     "$CFG->wwwroot/local/educaaragon/processedcourses.php", 'local/educaaragon:manageall', false, $context));

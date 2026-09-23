@@ -181,7 +181,10 @@ if ($tasktype === 'generate') {
                 $toprocess[] = $centercourse;
             }
 
-            if (empty($toprocess)) {
+            if (empty($centercourses)) {
+                $output .= $OUTPUT->notification(
+                    get_string('launchtask_center_notfound', 'local_educaaragon', $center), 'error');
+            } else if (empty($toprocess)) {
                 $output .= $OUTPUT->notification(get_string('launchtask_center_none', 'local_educaaragon'), 'warning');
             } else {
                 $courseids = array_map(function($centercourse) {
@@ -284,6 +287,12 @@ if ($tasktype === 'generate') {
 
             $output .= $OUTPUT->notification(
                 get_string('launchtask_queued', 'local_educaaragon', $scopedesc), 'success');
+        } else if ($scope === 'center') {
+            $output .= $OUTPUT->notification(
+                get_string('launchtask_migration_centernone', 'local_educaaragon', $center), 'error');
+        } else if ($scope === 'all') {
+            $output .= $OUTPUT->notification(
+                get_string('launchtask_migration_noeditions', 'local_educaaragon', ''), 'warning');
         }
     }
 }
@@ -297,6 +306,12 @@ usort($courses, function($a, $b) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('launchtask', 'local_educaaragon'));
 echo html_writer::tag('p', get_string('launchtask_desc', 'local_educaaragon'));
+echo html_writer::start_div('mb-3');
+echo html_writer::link(
+    new moodle_url('/local/educaaragon/logs.php'),
+    get_string('logs', 'local_educaaragon'),
+    ['class' => 'btn btn-secondary btn-sm']);
+echo html_writer::end_div();
 
 if (!empty($output)) {
     echo $output;

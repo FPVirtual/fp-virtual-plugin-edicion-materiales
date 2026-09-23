@@ -126,6 +126,17 @@ $string['tasksummary_failedcourse'] = '{$a->shortname} (id={$a->courseid}): {$a-
 $string['tasksummary_elapsed'] = 'Tiempo total de ejecución: {$a}';
 $string['tasksummary_peakmemory'] = 'Memoria pico utilizada: {$a}';
 $string['tasksummary_coursenotfound'] = 'Módulo no encontrado (id={$a}). Se omite.';
+$string['launchtask_center_notfound'] = 'No existe ningún módulo con el código de centro indicado: {$a}';
+$string['launchtask_migration_centernone'] = 'No se han encontrado carpetas de ediciones para el centro indicado: {$a}';
+$string['logs'] = 'Logs de ejecución';
+$string['logs_desc'] = 'Documentos de log generados por las ejecuciones de generación de materiales e importación de versiones. Se guardan en la carpeta logs/ de la raíz del repositorio de materiales.';
+$string['logs_empty'] = 'Todavía no se ha generado ningún log de ejecución.';
+$string['logs_file'] = 'Fichero';
+$string['logs_modified'] = 'Fecha';
+$string['logs_size'] = 'Tamaño';
+$string['logs_download'] = 'Descargar';
+$string['logs_back'] = 'Volver al listado de logs';
+$string['logs_notfound'] = 'No se ha encontrado el fichero de log indicado.';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';

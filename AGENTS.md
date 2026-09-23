@@ -40,6 +40,7 @@ local/educaaragon/
 ├── editresourcetoc.php      # Editor de la tabla de contenidos (TOC)
 ├── processedcourses.php     # Panel de módulos procesados
 ├── launchtask.php           # Ejecución manual de tareas (generación de materiales + importación de versiones, con log)
+├── logs.php                 # Visor de los documentos de log generados en <repo>/logs/
 ├── registereditions.php     # Registro de ediciones realizadas
 ├── resourcelinks.php        # Informe de enlaces de una versión
 ├── db/
