@@ -137,6 +137,16 @@ $string['logs_size'] = 'Size';
 $string['logs_download'] = 'Download';
 $string['logs_back'] = 'Back to the log list';
 $string['logs_notfound'] = 'The requested log file was not found.';
+$string['logs_queuedtasks'] = 'Queued plugin tasks';
+$string['logs_queuedtasks_empty'] = 'There are no plugin tasks waiting in the queue.';
+$string['logs_tasktype'] = 'Task';
+$string['logs_taskscope'] = 'Scope';
+$string['logs_taskqueuedby'] = 'Queued by';
+$string['logs_taskqueuedat'] = 'Queued at';
+$string['logs_tasknextrun'] = 'Next run';
+$string['logs_taskstatus'] = 'Status';
+$string['logs_taskstatus_queued'] = 'Queued';
+$string['logs_taskstatus_delayed'] = 'Queued (retry after failure)';
 
 // Tables
 $string['processedcourses'] = 'Processed modules';

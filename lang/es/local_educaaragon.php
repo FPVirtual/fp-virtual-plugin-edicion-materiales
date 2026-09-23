@@ -137,6 +137,16 @@ $string['logs_size'] = 'Tamaño';
 $string['logs_download'] = 'Descargar';
 $string['logs_back'] = 'Volver al listado de logs';
 $string['logs_notfound'] = 'No se ha encontrado el fichero de log indicado.';
+$string['logs_queuedtasks'] = 'Tareas del plugin en cola';
+$string['logs_queuedtasks_empty'] = 'No hay tareas del plugin esperando en la cola.';
+$string['logs_tasktype'] = 'Tarea';
+$string['logs_taskscope'] = 'Ámbito';
+$string['logs_taskqueuedby'] = 'Encolada por';
+$string['logs_taskqueuedat'] = 'Encolada el';
+$string['logs_tasknextrun'] = 'Próxima ejecución';
+$string['logs_taskstatus'] = 'Estado';
+$string['logs_taskstatus_queued'] = 'En cola';
+$string['logs_taskstatus_delayed'] = 'En cola (reintento tras fallo)';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';

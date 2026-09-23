@@ -27,7 +27,7 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
-global $CFG, $OUTPUT, $PAGE;
+global $CFG, $DB, $OUTPUT, $PAGE;
 
 require_once($CFG->dirroot . '/local/educaaragon/lib.php');
 
@@ -112,6 +112,47 @@ usort($logfiles, function($a, $b) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('logs', 'local_educaaragon'));
 echo html_writer::tag('p', get_string('logs_desc', 'local_educaaragon'));
+
+// Queued background tasks of this plugin (generation and version import).
+$queuedrecords = $DB->get_records_select('task_adhoc',
+    $DB->sql_compare_text('classname') . ' IN (:c1, :c2)',
+    [
+        'c1' => 'local_educaaragon\task\process_courses_task',
+        'c2' => 'local_educaaragon\task\migrate_versions_task',
+    ],
+    'nextruntime ASC, id ASC');
+echo $OUTPUT->heading(get_string('logs_queuedtasks', 'local_educaaragon'), 4);
+if (empty($queuedrecords)) {
+    echo $OUTPUT->notification(get_string('logs_queuedtasks_empty', 'local_educaaragon'), 'info');
+} else {
+    $queuedtable = new html_table();
+    $queuedtable->head = [
+        get_string('logs_tasktype', 'local_educaaragon'),
+        get_string('logs_taskscope', 'local_educaaragon'),
+        get_string('logs_taskqueuedby', 'local_educaaragon'),
+        get_string('logs_taskqueuedat', 'local_educaaragon'),
+        get_string('logs_tasknextrun', 'local_educaaragon'),
+        get_string('logs_taskstatus', 'local_educaaragon'),
+    ];
+    $queuedtable->attributes['class'] = 'generaltable';
+    foreach ($queuedrecords as $queuedrecord) {
+        $queuedtask = \core\task\manager::adhoc_task_from_record($queuedrecord);
+        $queueddata = $queuedtask->get_custom_data();
+        $queuedby = $DB->get_record('user', ['id' => $queuedrecord->userid], 'id, firstname, lastname');
+        $status = ((int)$queuedrecord->faildelay > 0)
+            ? get_string('logs_taskstatus_delayed', 'local_educaaragon')
+            : get_string('logs_taskstatus_queued', 'local_educaaragon');
+        $queuedtable->data[] = [
+            $queuedtask->get_name(),
+            !empty($queueddata->scopedesc) ? s($queueddata->scopedesc) : '-',
+            $queuedby ? fullname($queuedby) : '-',
+            !empty($queuedrecord->timecreated) ? userdate($queuedrecord->timecreated) : '-',
+            userdate($queuedrecord->nextruntime),
+            $status,
+        ];
+    }
+    echo html_writer::table($queuedtable);
+}
 
 if (empty($logfiles)) {
     echo $OUTPUT->notification(get_string('logs_empty', 'local_educaaragon'), 'info');
