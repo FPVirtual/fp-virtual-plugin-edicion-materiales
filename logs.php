@@ -114,6 +114,8 @@ echo $OUTPUT->heading(get_string('logs', 'local_educaaragon'));
 echo html_writer::tag('p', get_string('logs_desc', 'local_educaaragon'));
 
 // Queued background tasks of this plugin (generation and version import).
+// NOTE: \core\task\manager::adhoc_task_from_record() is protected in the core,
+// so the records are read directly and the task data is resolved here.
 $queuedrecords = $DB->get_records_select('task_adhoc',
     $DB->sql_compare_text('classname') . ' IN (:c1, :c2)',
     [
@@ -121,6 +123,10 @@ $queuedrecords = $DB->get_records_select('task_adhoc',
         'c2' => 'local_educaaragon\task\migrate_versions_task',
     ],
     'nextruntime ASC, id ASC');
+$tasknames = [
+    'local_educaaragon\task\process_courses_task' => get_string('processcourses_task', 'local_educaaragon'),
+    'local_educaaragon\task\migrate_versions_task' => get_string('migrateversionstask', 'local_educaaragon'),
+];
 echo $OUTPUT->heading(get_string('logs_queuedtasks', 'local_educaaragon'), 4);
 if (empty($queuedrecords)) {
     echo $OUTPUT->notification(get_string('logs_queuedtasks_empty', 'local_educaaragon'), 'info');
@@ -136,15 +142,22 @@ if (empty($queuedrecords)) {
     ];
     $queuedtable->attributes['class'] = 'generaltable';
     foreach ($queuedrecords as $queuedrecord) {
-        $queuedtask = \core\task\manager::adhoc_task_from_record($queuedrecord);
-        $queueddata = $queuedtask->get_custom_data();
+        $taskname = $tasknames[ltrim($queuedrecord->classname, '\\')] ?? $queuedrecord->classname;
+        // Adhoc task custom data is stored JSON-encoded (legacy rows may be serialized).
+        $customdata = null;
+        if (!empty($queuedrecord->customdata)) {
+            $customdata = json_decode($queuedrecord->customdata);
+            if (!is_object($customdata)) {
+                $customdata = @unserialize($queuedrecord->customdata);
+            }
+        }
         $queuedby = $DB->get_record('user', ['id' => $queuedrecord->userid], 'id, firstname, lastname');
         $status = ((int)$queuedrecord->faildelay > 0)
             ? get_string('logs_taskstatus_delayed', 'local_educaaragon')
             : get_string('logs_taskstatus_queued', 'local_educaaragon');
         $queuedtable->data[] = [
-            $queuedtask->get_name(),
-            !empty($queueddata->scopedesc) ? s($queueddata->scopedesc) : '-',
+            $taskname,
+            (is_object($customdata) && !empty($customdata->scopedesc)) ? s($customdata->scopedesc) : '-',
             $queuedby ? fullname($queuedby) : '-',
             !empty($queuedrecord->timecreated) ? userdate($queuedrecord->timecreated) : '-',
             userdate($queuedrecord->nextruntime),
