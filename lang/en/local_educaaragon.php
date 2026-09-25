@@ -147,6 +147,10 @@ $string['logs_tasknextrun'] = 'Next run';
 $string['logs_taskstatus'] = 'Status';
 $string['logs_taskstatus_queued'] = 'Queued';
 $string['logs_taskstatus_delayed'] = 'Queued (retry after failure)';
+$string['cleanuporphanstask'] = 'Cleanup orphan edition folders';
+$string['launchtask_task_cleanup'] = 'Orphan folder cleanup';
+$string['launchtask_task_cleanup_desc'] = 'Reviews the modules with already imported versions and deletes the old-id folders under editions/ that are no longer needed (only when their content is really imported).';
+$string['cleanup_result'] = 'Cleanup finished. Deleted folders: {$a->removed}. Kept: {$a->kept}. Errors: {$a->errors}.';
 
 // Tables
 $string['processedcourses'] = 'Processed modules';

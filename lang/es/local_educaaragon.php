@@ -147,6 +147,10 @@ $string['logs_tasknextrun'] = 'Próxima ejecución';
 $string['logs_taskstatus'] = 'Estado';
 $string['logs_taskstatus_queued'] = 'En cola';
 $string['logs_taskstatus_delayed'] = 'En cola (reintento tras fallo)';
+$string['cleanuporphanstask'] = 'Limpiar carpetas huérfanas de ediciones';
+$string['launchtask_task_cleanup'] = 'Limpieza de carpetas huérfanas';
+$string['launchtask_task_cleanup_desc'] = 'Revisa los módulos con versiones ya importadas y elimina de editions/ las carpetas de ids antiguos que ya no son necesarias (solo si su contenido está realmente importado).';
+$string['cleanup_result'] = 'Limpieza finalizada. Carpetas eliminadas: {$a->removed}. Conservadas: {$a->kept}. Errores: {$a->errors}.';
 
 // Tables
 $string['processedcourses'] = 'Módulos procesados';

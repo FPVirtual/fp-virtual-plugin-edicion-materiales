@@ -225,7 +225,132 @@ class edition_versions_migrator {
             . ' | Versiones aplicadas: ' . $stats['appliedversions']
             . ' | Omitidas: ' . $stats['skipped']
             . ' | Errores: ' . $stats['errors']);
+
+        // The old folders are no longer needed once their versions have been
+        // imported without errors; delete them to keep editions/ clean.
+        if (!$this->dryrun && $stats['errors'] === 0
+            && ($stats['migratedversions'] > 0 || $stats['skipped'] > 0)) {
+            $this->delete_old_folders($coursepath, $oldfolders);
+        }
         return $stats;
+    }
+
+    /**
+     * Reviews the editions folder of one course and deletes the orphan old
+     * resourceid folders whose versions are already present in the current
+     * resourceid folders (i.e. they were imported correctly). Folders with
+     * versions that are not fully imported yet, or that cannot be paired
+     * positionally with a current resource, are kept.
+     *
+     * @param stdClass $course Course record (must contain at least id and shortname).
+     * @return array Stats with keys: removed, kept, errors.
+     * @throws dml_exception
+     */
+    public function cleanup_course_orphans(stdClass $course): array {
+        global $DB;
+        $stats = [
+            'removed' => 0,
+            'kept' => 0,
+            'errors' => 0,
+        ];
+        $coursepath = $this->editionspath . $course->shortname . '/';
+        if (!is_dir($coursepath)) {
+            return $stats;
+        }
+        $this->log('');
+        $this->log('=== Módulo: ' . $course->shortname . ' (id=' . $course->id . ') ===');
+
+        // Current editable resourceids of the course, in ascending order.
+        $currenteditables = $DB->get_records('local_educa_editables', [
+            'courseid' => $course->id,
+            'type' => 'editable',
+        ], 'resourceid ASC', 'resourceid');
+        $currentids = array_keys($currenteditables);
+        if (empty($currentids)) {
+            $this->log('  No editable resources, nothing to review.');
+            return $stats;
+        }
+
+        // Orphan folders: numeric dirs that do not match a current resourceid.
+        $orphans = [];
+        foreach (scandir($coursepath) as $resourcedir) {
+            if ($resourcedir === '.' || $resourcedir === '..' || !is_dir($coursepath . $resourcedir)) {
+                continue;
+            }
+            $rid = (int)$resourcedir;
+            if ($rid > 0 && !in_array($rid, $currentids, true)) {
+                $orphans[] = $rid;
+            }
+        }
+        sort($orphans, SORT_NUMERIC);
+        if (empty($orphans)) {
+            $this->log('  No orphan folders found.');
+            return $stats;
+        }
+
+        // Same positional pairing used by the migration.
+        $paircount = min(count($orphans), count($currentids));
+        foreach ($orphans as $index => $oldid) {
+            if ($index >= $paircount) {
+                $this->log('  Kept folder ' . $oldid . ': no current resource to pair with.', true);
+                $stats['kept']++;
+                continue;
+            }
+            $newid = $currentids[$index];
+            $oldpath = $coursepath . $oldid . '/';
+            $newpath = $coursepath . $newid . '/';
+            // Verify that every version of the orphan folder exists in the current folder.
+            $pending = [];
+            foreach (scandir($oldpath) as $versionname) {
+                if ($versionname === '.' || $versionname === '..' || !is_dir($oldpath . $versionname)) {
+                    continue;
+                }
+                if (!is_dir($newpath . $versionname)) {
+                    $pending[] = $versionname;
+                }
+            }
+            if (!empty($pending)) {
+                $this->log('  Kept folder ' . $oldid . ': versions not imported yet into ' . $newid . ': '
+                    . implode(', ', $pending), true);
+                $stats['kept']++;
+                continue;
+            }
+            if ($this->dryrun) {
+                $this->log('  [DRY-RUN] Would delete orphan folder ' . $oldid . ' (already imported into ' . $newid . ')', true);
+                $stats['removed']++;
+                continue;
+            }
+            try {
+                delete_folder($oldpath);
+                $this->log('  Deleted orphan folder ' . $oldid . ' (already imported into ' . $newid . ')');
+                $stats['removed']++;
+            } catch (Exception $e) {
+                $this->log('  Error deleting folder ' . $oldid . ': ' . $e->getMessage(), true);
+                $stats['errors']++;
+            }
+        }
+        $this->log('  -> Carpetas eliminadas: ' . $stats['removed']
+            . ' | Conservadas: ' . $stats['kept']
+            . ' | Errores: ' . $stats['errors']);
+        return $stats;
+    }
+
+    /**
+     * Deletes the given old resourceid folders of a course.
+     *
+     * @param string $coursepath editions/<shortname>/ path.
+     * @param int[] $oldfolderids
+     * @return void
+     */
+    private function delete_old_folders(string $coursepath, array $oldfolderids): void {
+        foreach ($oldfolderids as $oldid) {
+            try {
+                delete_folder($coursepath . $oldid . '/');
+                $this->log('  Deleted old folder ' . $oldid);
+            } catch (Exception $e) {
+                $this->log('  Error deleting old folder ' . $oldid . ': ' . $e->getMessage(), true);
+            }
+        }
     }
 
     /**

@@ -38,6 +38,7 @@ global $CFG, $DB, $OUTPUT, $PAGE, $USER;
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/local/educaaragon/lib.php');
 
+use local_educaaragon\task\cleanup_orphans_task;
 use local_educaaragon\task\migrate_versions_task;
 use local_educaaragon\task\process_courses_task;
 
@@ -202,7 +203,7 @@ if ($tasktype === 'generate') {
 // ============================================================================
 // IMPORTACIÓN DE VERSIONES DE MATERIALES
 // ============================================================================
-} else if ($tasktype === 'migrate') {
+} else if ($tasktype === 'migrate' || $tasktype === 'cleanup') {
     if ($scope !== 'all' && $scope !== 'center' && !($scope === 'single' && $courseid > 0)) {
         $output .= $OUTPUT->notification(get_string('launchtask_scope_missing', 'local_educaaragon'), 'error');
     } else if ($scope === 'center' && $center === '') {
@@ -271,7 +272,7 @@ if ($tasktype === 'generate') {
                 $courseids[] = (int)$migrationcourse->id;
             }
 
-            $task = new migrate_versions_task();
+            $task = $tasktype === 'cleanup' ? new cleanup_orphans_task() : new migrate_versions_task();
             $task->set_custom_data((object)[
                 'courseids' => $courseids,
                 'notfound' => $notfound,
@@ -353,6 +354,19 @@ if ($showform) {
     ]);
     echo html_writer::tag('label', get_string('launchtask_task_migrate', 'local_educaaragon'), ['class' => 'form-check-label', 'for' => 'task_migrate']);
     echo html_writer::tag('small', get_string('launchtask_task_migrate_desc', 'local_educaaragon'), ['class' => 'form-text text-muted d-block']);
+    echo html_writer::end_div();
+
+    echo html_writer::start_div('form-check mt-2');
+    echo html_writer::empty_tag('input', [
+        'class' => 'form-check-input',
+        'type' => 'radio',
+        'name' => 'task',
+        'id' => 'task_cleanup',
+        'value' => 'cleanup',
+        'checked' => ($tasktype === 'cleanup') ? 'checked' : null,
+    ]);
+    echo html_writer::tag('label', get_string('launchtask_task_cleanup', 'local_educaaragon'), ['class' => 'form-check-label', 'for' => 'task_cleanup']);
+    echo html_writer::tag('small', get_string('launchtask_task_cleanup_desc', 'local_educaaragon'), ['class' => 'form-text text-muted d-block']);
     echo html_writer::end_div();
 
     echo html_writer::end_tag('fieldset');

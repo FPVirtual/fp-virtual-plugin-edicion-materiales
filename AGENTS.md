@@ -67,7 +67,8 @@ local/educaaragon/
 │   ├── task/
 │   │   ├── transform_dynamic_content.php   # Tarea programada
 │   │   ├── process_courses_task.php        # Tarea adhoc: generación de materiales (encolada desde launchtask.php)
-│   │   └── migrate_versions_task.php       # Tarea adhoc: importación de versiones (encolada desde launchtask.php)
+│   │   ├── migrate_versions_task.php       # Tarea adhoc: importación de versiones (encolada desde launchtask.php)
+│   │   └── cleanup_orphans_task.php        # Tarea adhoc: limpieza de carpetas huérfanas de editions/ (encolada desde launchtask.php)
 │   ├── external/                      # Servicios web AJAX
 │   │   ├── applyversion_external.php
 │   │   ├── createversion_external.php
